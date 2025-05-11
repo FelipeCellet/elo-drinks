@@ -34,6 +34,12 @@ function Navbar({ usuario }) {
           <NavLink to="/custom" className={linkClasses}>
             Personalizar
           </NavLink>
+          <NavLink to="/meus-pacotes" className={linkClasses}>
+            Meus Pacotes
+          </NavLink>
+          <NavLink to="/portfolio" className={linkClasses}>
+            Portfólio
+          </NavLink>
           {usuario && !usuario.isAnonymous && (
             <NavLink to="/admin" className={linkClasses}>
               Admin

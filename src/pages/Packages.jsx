@@ -1,4 +1,7 @@
 import { useNavigate } from "react-router-dom";
+import { db, auth } from "../firebase";
+import { collection, addDoc } from "firebase/firestore";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 const samplePackages = [
   {
@@ -17,6 +20,26 @@ const samplePackages = [
 
 function Packages() {
   const navigate = useNavigate();
+  const [usuario] = useAuthState(auth);
+
+  const contratarPacote = async (pkg) => {
+    if (!usuario) return;
+    try {
+      const docRef = await addDoc(collection(db, "pacotes"), {
+        uid: usuario.uid,
+        pacotePronto: true,
+        nome: pkg.nome,
+        bebidas: pkg.bebidas,
+        preco: pkg.preco,
+        dataEvento: new Date(),
+        criadoEm: new Date(),
+      });
+      navigate(`/payment/${docRef.id}`);
+    } catch (error) {
+      console.error("Erro ao contratar pacote:", error);
+      alert("Erro ao contratar o pacote.");
+    }
+  };
 
   return (
     <div className="space-y-6 text-white">
@@ -34,7 +57,7 @@ function Packages() {
             <p className="text-xl font-bold text-[#F4A300]">R$ {pkg.preco}</p>
 
             <button
-              onClick={() => navigate(`/packages/details/${pkg.id}`)}
+              onClick={() => contratarPacote(pkg)}
               className="w-full bg-[#F4A300] text-black py-2 rounded hover:bg-yellow-500 transition"
             >
               Contratar Pacote

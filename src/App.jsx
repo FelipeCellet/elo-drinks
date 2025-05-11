@@ -12,6 +12,10 @@ import Navbar from './components/Navbar';
 import PackagesDetails from "./pages/PackagesDetails";
 import Payment from "./pages/Payment";
 import Register from "./pages/Register";
+import MyPackages from './pages/MyPackages';
+import Portfolio from "./pages/Portfolio";
+
+
 
 function App() {
   const [usuario, setUsuario] = useState(null);
@@ -55,6 +59,8 @@ function App() {
               path="/custom"
               element={usuario ? <CustomPackage /> : <Navigate to="/login" replace />}
             />
+            <Route path="/portfolio" element={<Portfolio />} />
+
             <Route path="/payment/:id" element={<Payment />} />
             <Route
               path="/login"
@@ -63,6 +69,10 @@ function App() {
             <Route
               path="/register"
               element={usuario ? <Navigate to="/" replace /> : <Register />}
+            />
+            <Route
+              path="/meus-pacotes"
+              element={usuario ? <MyPackages /> : <Navigate to="/login" replace />}
             />
             <Route
               path="/admin"

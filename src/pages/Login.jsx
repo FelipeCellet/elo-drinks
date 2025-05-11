@@ -52,7 +52,7 @@ function Login() {
         onClick={login}
         className="w-full bg-[#F4A300] text-black py-2 rounded hover:bg-yellow-500 transition"
       >
-        Entrar como Admin
+        Entrar
       </button>
 
       <div className="border-t border-gray-700 pt-4 text-center text-sm text-gray-400">
