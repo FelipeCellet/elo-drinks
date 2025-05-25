@@ -17,6 +17,7 @@ function EditablePackageWizard() {
   const [bairro, setBairro] = useState("");
   const [numero, setNumero] = useState("");
   const [complemento, setComplemento] = useState("");
+  const [pedidoEnviado, setPedidoEnviado] = useState(false);
 
   const navigate = useNavigate();
 
@@ -60,12 +61,10 @@ function EditablePackageWizard() {
   };
 
   const finalizar = async () => {
-    const endereco = `${bairro}, ${numero} - ${cidade}/${estado}${
-      complemento ? " - " + complemento : ""
-    }`;
+    const endereco = `${bairro}, ${numero} - ${cidade}/${estado}${complemento ? " - " + complemento : ""}`;
 
     try {
-      const docRef = await addDoc(collection(db, "pacotes"), {
+      await addDoc(collection(db, "pacotes"), {
         uid: usuario?.uid || null,
         pessoas,
         barmen,
@@ -74,10 +73,11 @@ function EditablePackageWizard() {
         endereco,
         dataEvento: new Date(),
         preco: 500 + barmen * 600 + bebidas.length * 100 + insumos.length * 30,
-        criadoEm: new Date()
+        status: "em análise",
+        criadoEm: new Date(),
       });
 
-      navigate(`/payment/${docRef.id}`);
+      setPedidoEnviado(true);
     } catch (error) {
       console.error("Erro ao salvar pacote:", error);
       alert("Erro ao finalizar pacote");
@@ -85,181 +85,196 @@ function EditablePackageWizard() {
   };
 
   return (
-    <div className="max-w-xl mx-auto p-6 text-white">
-      {step === 1 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-[#F4A300]">Etapa 1: Número de Pessoas</h2>
-          <label className="block">Quantas pessoas terão na sua festa?</label>
-          <input
-            type="number"
-            className="w-full p-2 bg-gray-900 border rounded text-white"
-            min={1}
-            value={pessoas}
-            onChange={(e) => {
-              const valor = Number(e.target.value);
-              setPessoas(valor);
-              if (valor > 0) {
-                setBarmen(calcularBarmenRecomendado(valor));
-              }
-            }}
-          />
+    <div className="max-w-xl mx-auto p-6 bg-white text-black">
+      {pedidoEnviado && (
+        <div className="bg-green-100 border border-green-400 text-green-800 rounded p-4 mb-6 text-center">
+          <h2 className="text-xl font-bold mb-2">Pedido enviado com sucesso!</h2>
+          <p>Aguardando confirmação para realizar o pagamento.</p>
+        </div>
+      )}
 
-          {pessoas > 0 && (
-            <>
-              <label className="block mt-4">
-                Recomendamos {calcularBarmenRecomendado(pessoas)} barmen. Quantos deseja contratar?
-              </label>
+      {!pedidoEnviado && (
+        <>
+          {step === 1 && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-[#F4A300] text-center">Etapa 1: Número de Pessoas</h2>
+
               <input
                 type="number"
+                className="w-full p-3 bg-white border border-gray-300 rounded shadow-sm"
                 min={1}
-                className="w-full p-2 bg-gray-900 border rounded text-white"
-                value={barmen}
-                onChange={(e) => setBarmen(Number(e.target.value))}
+                value={pessoas}
+                onChange={(e) => {
+                  const valor = Number(e.target.value);
+                  setPessoas(valor);
+                  if (valor > 0) {
+                    setBarmen(calcularBarmenRecomendado(valor));
+                  }
+                }}
               />
-            </>
+
+              {pessoas > 0 && (
+                <>
+                  <label className="block">
+                    Recomendamos {calcularBarmenRecomendado(pessoas)} barmen. Quantos deseja contratar?
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    className="w-full p-3 bg-white border border-gray-300 rounded shadow-sm"
+                    value={barmen}
+                    onChange={(e) => setBarmen(Number(e.target.value))}
+                  />
+                </>
+              )}
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={proximo}
+                  className="bg-[#F4A300] text-black px-6 py-2 rounded hover:bg-yellow-500 transition font-semibold"
+                  disabled={pessoas <= 0}
+                >
+                  Próximo
+                </button>
+              </div>
+            </div>
           )}
 
-          <div className="flex justify-between mt-6">
-            <div></div>
-            <button
-              onClick={proximo}
-              className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
-              disabled={pessoas <= 0}
-            >
-              Próximo
-            </button>
-          </div>
-        </div>
-      )}
+          {step === 2 && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-[#F4A300] text-center">Etapa 2: Bebidas</h2>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {tiposBebida.map((bebida) => (
+                  <button
+                    key={bebida}
+                    onClick={() => toggleBebida(bebida)}
+                    className={`px-4 py-2 rounded-full text-sm border transition ${
+                      bebidas.includes(bebida)
+                        ? "bg-[#F4A300] text-black font-semibold"
+                        : "bg-gray-100 text-black"
+                    }`}
+                  >
+                    {bebida}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between mt-6">
+                <button
+                  onClick={voltar}
+                  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={proximo}
+                  className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
+                >
+                  Próximo
+                </button>
+              </div>
+            </div>
+          )}
 
-      {step === 2 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-[#F4A300]">Etapa 2: Bebidas</h2>
-          <div className="flex flex-wrap gap-2">
-            {tiposBebida.map((bebida) => (
-              <button
-                key={bebida}
-                onClick={() => toggleBebida(bebida)}
-                className={`px-3 py-1 rounded-full text-sm border ${
-                  bebidas.includes(bebida) ? "bg-[#F4A300] text-black" : "bg-gray-800 text-white"
-                }`}
-              >
-                {bebida}
-              </button>
-            ))}
-          </div>
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={voltar}
-              className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
-              Voltar
-            </button>
-            <button
-              onClick={proximo}
-              className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
-            >
-              Próximo
-            </button>
-          </div>
-        </div>
-      )}
+          {step === 3 && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-[#F4A300] text-center">Etapa 3: Insumos</h2>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {tiposInsumos.map((insumo) => (
+                  <button
+                    key={insumo}
+                    onClick={() => toggleInsumo(insumo)}
+                    className={`px-4 py-2 rounded-full text-sm border transition ${
+                      insumos.includes(insumo)
+                        ? "bg-[#F4A300] text-black font-semibold"
+                        : "bg-gray-100 text-black"
+                    }`}
+                  >
+                    {insumo}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between mt-6">
+                <button
+                  onClick={voltar}
+                  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={proximo}
+                  className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
+                >
+                  Próximo
+                </button>
+              </div>
+            </div>
+          )}
 
-      {step === 3 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-[#F4A300]">Etapa 3: Insumos</h2>
-          <div className="flex flex-wrap gap-2">
-            {tiposInsumos.map((insumo) => (
-              <button
-                key={insumo}
-                onClick={() => toggleInsumo(insumo)}
-                className={`px-3 py-1 rounded-full text-sm border ${
-                  insumos.includes(insumo) ? "bg-[#F4A300] text-black" : "bg-gray-800 text-white"
-                }`}
-              >
-                {insumo}
-              </button>
-            ))}
-          </div>
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={voltar}
-              className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
-              Voltar
-            </button>
-            <button
-              onClick={proximo}
-              className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
-            >
-              Próximo
-            </button>
-          </div>
-        </div>
-      )}
+          {step === 4 && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-[#F4A300] text-center">Etapa 4: Local do Evento</h2>
 
-      {step === 4 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-[#F4A300]">Etapa 4: Local do Evento</h2>
-          <input
-            type="text"
-            className="w-full p-2 bg-gray-900 border rounded text-white"
-            placeholder="CEP"
-            value={cep}
-            onChange={(e) => setCep(e.target.value)}
-            onBlur={buscarEndereco}
-          />
-          <input
-            type="text"
-            className="w-full p-2 bg-gray-800 border rounded text-white"
-            placeholder="Cidade"
-            value={cidade}
-            readOnly
-          />
-          <input
-            type="text"
-            className="w-full p-2 bg-gray-800 border rounded text-white"
-            placeholder="Estado"
-            value={estado}
-            readOnly
-          />
-          <input
-            type="text"
-            className="w-full p-2 bg-gray-900 border rounded text-white"
-            placeholder="Bairro"
-            value={bairro}
-            onChange={(e) => setBairro(e.target.value)}
-          />
-          <input
-            type="text"
-            className="w-full p-2 bg-gray-900 border rounded text-white"
-            placeholder="Número"
-            value={numero}
-            onChange={(e) => setNumero(e.target.value)}
-          />
-          <input
-            type="text"
-            className="w-full p-2 bg-gray-900 border rounded text-white"
-            placeholder="Complemento"
-            value={complemento}
-            onChange={(e) => setComplemento(e.target.value)}
-          />
+              <input
+                type="text"
+                className="w-full p-3 bg-white border border-gray-300 rounded"
+                placeholder="CEP"
+                value={cep}
+                onChange={(e) => setCep(e.target.value)}
+                onBlur={buscarEndereco}
+              />
+              <input
+                type="text"
+                className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
+                placeholder="Cidade"
+                value={cidade}
+                readOnly
+              />
+              <input
+                type="text"
+                className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
+                placeholder="Estado"
+                value={estado}
+                readOnly
+              />
+              <input
+                type="text"
+                className="w-full p-3 bg-white border border-gray-300 rounded"
+                placeholder="Bairro"
+                value={bairro}
+                onChange={(e) => setBairro(e.target.value)}
+              />
+              <input
+                type="text"
+                className="w-full p-3 bg-white border border-gray-300 rounded"
+                placeholder="Número"
+                value={numero}
+                onChange={(e) => setNumero(e.target.value)}
+              />
+              <input
+                type="text"
+                className="w-full p-3 bg-white border border-gray-300 rounded"
+                placeholder="Complemento"
+                value={complemento}
+                onChange={(e) => setComplemento(e.target.value)}
+              />
 
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={voltar}
-              className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
-              Voltar
-            </button>
-            <button
-              onClick={finalizar}
-              className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
-            >
-              Finalizar
-            </button>
-          </div>
-        </div>
+              <div className="flex justify-between mt-6">
+                <button
+                  onClick={voltar}
+                  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={finalizar}
+                  className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
+                >
+                  Finalizar
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

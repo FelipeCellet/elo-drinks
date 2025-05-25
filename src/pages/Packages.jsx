@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { db, auth } from "../firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 const samplePackages = [
@@ -22,43 +21,32 @@ function Packages() {
   const navigate = useNavigate();
   const [usuario] = useAuthState(auth);
 
-  const contratarPacote = async (pkg) => {
+  const contratarPacote = (pkg) => {
     if (!usuario) return;
-    try {
-      const docRef = await addDoc(collection(db, "pacotes"), {
-        uid: usuario.uid,
-        pacotePronto: true,
-        nome: pkg.nome,
-        bebidas: pkg.bebidas,
-        preco: pkg.preco,
-        dataEvento: new Date(),
-        criadoEm: new Date(),
-      });
-      navigate(`/payment/${docRef.id}`);
-    } catch (error) {
-      console.error("Erro ao contratar pacote:", error);
-      alert("Erro ao contratar o pacote.");
-    }
+    navigate(`/packages/contratar/${pkg.id}`);
   };
 
   return (
-    <div className="space-y-6 text-white">
-      <h2 className="text-2xl font-semibold text-[#F4A300] text-center">Pacotes Prontos</h2>
-      <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="min-h-screen bg-white text-black py-12 px-4">
+      <h2 className="text-3xl font-bold text-[#F4A300] text-center mb-10 uppercase tracking-wide">
+        Pacotes Prontos
+      </h2>
+
+      <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
         {samplePackages.map((pkg) => (
           <div
             key={pkg.id}
-            className="bg-black border border-gray-800 p-6 rounded-2xl shadow-md space-y-4"
+            className="bg-white border border-[#F4A300] p-6 rounded-2xl shadow-lg space-y-4 transition hover:scale-[1.01]"
           >
-            <h3 className="text-lg font-bold text-white">{pkg.nome}</h3>
-            <p className="text-sm text-gray-300">
+            <h3 className="text-lg font-bold">{pkg.nome}</h3>
+            <p className="text-sm text-gray-700">
               Bebidas incluídas: {pkg.bebidas.join(", ")}
             </p>
             <p className="text-xl font-bold text-[#F4A300]">R$ {pkg.preco}</p>
 
             <button
               onClick={() => contratarPacote(pkg)}
-              className="w-full bg-[#F4A300] text-black py-2 rounded hover:bg-yellow-500 transition"
+              className="w-full bg-[#F4A300] text-black py-2 rounded hover:bg-yellow-500 transition font-medium"
             >
               Contratar Pacote
             </button>

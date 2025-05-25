@@ -1,50 +1,86 @@
 import { useEffect, useState } from "react";
-import { db, auth } from "../firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { useNavigate } from "react-router-dom";
 
-function MeusPacotes() {
+function MyPackages() {
+  const [usuario] = useAuthState(auth);
   const [pacotes, setPacotes] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const pacotesRef = collection(db, "pacotes");
-        const q = query(pacotesRef, where("uid", "==", user.uid));
-        const snapshot = await getDocs(q);
-        const dados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setPacotes(dados);
-        setCarregando(false);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+    const buscarPacotes = async () => {
+      if (!usuario) return;
+      const q = query(collection(db, "pacotes"), where("uid", "==", usuario.uid));
+      const snap = await getDocs(q);
+      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPacotes(lista);
+    };
+    buscarPacotes();
+  }, [usuario]);
 
-  if (carregando) return <p className="text-white text-center mt-10">Carregando pacotes...</p>;
+  const corStatus = {
+    "em análise": "bg-yellow-200 text-yellow-800",
+    "confirmado": "bg-green-200 text-green-800",
+    "rejeitado": "bg-red-200 text-red-800",
+    "cancelado": "bg-gray-200 text-gray-800",
+    "pago": "bg-blue-200 text-blue-800"
+  };
+
+  const cancelarPacote = async (id) => {
+    const confirmar = window.confirm("Tem certeza que deseja cancelar este pacote?");
+    if (!confirmar) return;
+    await updateDoc(doc(db, "pacotes", id), { status: "cancelado" });
+    setPacotes(prev => prev.map(p => p.id === id ? { ...p, status: "cancelado" } : p));
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 text-white">
-      <h2 className="text-3xl font-bold text-[#F4A300] mb-6 text-center">Meus Pacotes</h2>
+    <div className="max-w-4xl mx-auto bg-white text-black p-6 space-y-6 min-h-screen">
+      <h2 className="text-3xl font-bold text-[#F4A300] text-center mb-6">Meus Pacotes</h2>
+
       {pacotes.length === 0 ? (
-        <p className="text-center">Você ainda não contratou nenhum pacote.</p>
+        <p className="text-center text-gray-500">Nenhum pacote contratado ainda.</p>
       ) : (
-        <div className="space-y-4">
-          {pacotes.map(p => (
-            <div key={p.id} className="border border-gray-700 bg-black rounded-xl p-4">
-              <p><strong>Evento para:</strong> {p.pessoas} pessoas</p>
-              <p><strong>Barmen:</strong> {p.barmen}</p>
-              <p><strong>Bebidas:</strong> {p.bebidas?.join(", ") || "-"}</p>
-              <p><strong>Insumos:</strong> {p.insumos?.join(", ") || "-"}</p>
-              <p><strong>Local:</strong> {p.endereco || "-"}</p>
-              <p><strong>Preço:</strong> <span className="text-[#F4A300] font-bold">R$ {p.preco?.toFixed(2).replace(".", ",")}</span></p>
-              <p className="text-sm text-gray-400">Reservado em: {new Date(p.criadoEm?.seconds * 1000).toLocaleDateString()}</p>
+        pacotes.map(p => (
+          <div
+            key={p.id}
+            className="bg-white border border-[#F4A300] rounded-xl p-5 shadow-sm space-y-2"
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Pacote {p.nome || "Personalizado"}</h3>
+              <span className={`px-2 py-1 text-xs rounded font-medium ${corStatus[p.status] || "bg-gray-200 text-gray-800"}`}>
+                {p.status || "em análise"}
+              </span>
             </div>
-          ))}
-        </div>
+            <p><strong>Pessoas:</strong> {p.pessoas}</p>
+            <p><strong>Barmen:</strong> {p.barmen}</p>
+            <p><strong>Valor:</strong> R$ {p.preco?.toFixed(2).replace(".", ",")}</p>
+            <p><strong>Endereço:</strong> {p.endereco}</p>
+            <p><strong>Bebidas:</strong> {p.bebidas?.join(", ") || "-"}</p>
+            <p><strong>Insumos:</strong> {p.insumos?.join(", ") || "-"}</p>
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => navigate(`/payment/${p.id}`)}
+                className="px-4 py-2 bg-[#F4A300] text-black rounded hover:bg-yellow-500 transition text-sm font-semibold"
+              >
+                Ver mais
+              </button>
+              {p.status === "em análise" && (
+                <button
+                  onClick={() => cancelarPacote(p.id)}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm font-semibold"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </div>
+        ))
       )}
     </div>
   );
 }
 
-export default MeusPacotes;
+export default MyPackages;

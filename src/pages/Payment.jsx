@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 function Payment() {
@@ -15,14 +15,20 @@ function Payment() {
       const ref = doc(db, "pacotes", id);
       const snap = await getDoc(ref);
       if (snap.exists()) {
-        setPacote(snap.data());
+        setPacote({ id: snap.id, ...snap.data() });
       }
     };
     buscarPacote();
   }, [id]);
 
-  const finalizar = () => {
-    navigate("/meus-pacotes");
+  const finalizar = async () => {
+    try {
+      await updateDoc(doc(db, "pacotes", id), { status: "pago" });
+      navigate(`/confirmacao/${id}`);
+    } catch (err) {
+      console.error("Erro ao atualizar status:", err);
+      alert("Erro ao confirmar pagamento.");
+    }
   };
 
   if (!pacote) return <p className="text-white text-center mt-10">Carregando pacote...</p>;
@@ -30,6 +36,38 @@ function Payment() {
   const enderecoFormatado = pacote.endereco || "-";
   const precoTotal = pacote.preco?.toFixed(2).replace(".", ",");
 
+  // ✅ Se já estiver pago
+  if (pacote.status === "pago") {
+    return (
+      <div className="max-w-xl mx-auto p-6 text-white text-center">
+        <h2 className="text-3xl font-bold text-[#F4A300] mb-6">Pagamento Confirmado</h2>
+        <p className="text-green-300 mb-6">
+          ✅ Seu pagamento foi confirmado com sucesso! Nos vemos no evento. 🥂
+        </p>
+
+        <div className="bg-black border border-gray-700 p-4 rounded-xl text-left space-y-2">
+          <p><strong>Quantidade de Pessoas:</strong> {pacote.pessoas}</p>
+          <p><strong>Barmen:</strong> {pacote.barmen}</p>
+          <p><strong>Bebidas:</strong> {pacote.bebidas?.join(", ") || "-"}</p>
+          <p><strong>Insumos:</strong> {pacote.insumos?.join(", ") || "-"}</p>
+          <p><strong>Local:</strong> {enderecoFormatado}</p>
+          <p><strong className="text-lg">Preço Total:</strong> <span className="text-[#F4A300] font-bold">R$ {precoTotal}</span></p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Se ainda não estiver liberado
+  if (pacote.status !== "confirmado") {
+    return (
+      <div className="text-white text-center mt-20">
+        <h2 className="text-2xl font-bold text-red-500 mb-4">Pagamento não disponível</h2>
+        <p>Este pacote ainda está com status <strong>{pacote.status}</strong>. Aguarde a aprovação do administrador.</p>
+      </div>
+    );
+  }
+
+  // ✅ Pagamento disponível (status: confirmado)
   return (
     <div className="max-w-xl mx-auto p-6 text-white">
       <h2 className="text-3xl font-bold text-[#F4A300] mb-6 text-center">Resumo do Pacote</h2>

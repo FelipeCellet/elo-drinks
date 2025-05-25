@@ -15,6 +15,9 @@ function Navbar({ usuario }) {
       isActive ? "text-[#F4A300]" : "text-gray-300"
     } hover:text-[#F4A300] transition`;
 
+  // ✅ Define o e-mail do administrador autorizado
+  const isAdmin = usuario?.email === "fcellet@gmail.com";
+
   return (
     <header className="bg-black shadow p-4 border-b border-gray-800">
       <div className="max-w-4xl mx-auto flex justify-between items-center">
@@ -40,7 +43,9 @@ function Navbar({ usuario }) {
           <NavLink to="/portfolio" className={linkClasses}>
             Portfólio
           </NavLink>
-          {usuario && !usuario.isAnonymous && (
+
+          {/* ✅ Só mostra se for o admin logado */}
+          {isAdmin && (
             <NavLink to="/admin" className={linkClasses}>
               Admin
             </NavLink>
