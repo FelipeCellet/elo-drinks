@@ -1,3 +1,4 @@
+// Atualizado: ContratarPacotePronto.jsx com resumo + valor por pessoa
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { collection, addDoc } from "firebase/firestore";
@@ -11,13 +12,13 @@ const pacotes = [
     id: "1",
     nome: "Pacote Festa Clássica",
     bebidas: ["Caipirinha", "Gin Tônica", "Cuba Libre"],
-    preco: 1200,
+    precoBase: 1200,
   },
   {
     id: "2",
     nome: "Pacote Premium",
     bebidas: ["Espumante", "Drinks Autorais", "Whisky"],
-    preco: 2200,
+    precoBase: 2200,
   },
 ];
 
@@ -56,40 +57,42 @@ function ContratarPacotePronto() {
       alert("Geolocalização não é suportada pelo navegador.");
       return;
     }
-
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+      async ({ coords }) => {
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.latitude}&lon=${coords.longitude}`
           );
           const data = await res.json();
           const addr = data.address;
-
           setCidade(addr.city || addr.town || addr.village || "");
           setEstado(addr.state || "");
           setBairro(addr.suburb || addr.neighbourhood || "");
           setCep(addr.postcode || "");
         } catch (err) {
-          console.error("Erro ao obter endereço:", err);
-          alert("Não foi possível obter a localização.");
+          alert("Erro ao obter localização.");
         }
       },
-      () => {
-        alert("Permissão negada ou erro ao acessar a localização.");
-      }
+      () => alert("Permissão negada ou erro ao acessar localização.")
     );
+  };
+
+  const calcularValorTotal = () => {
+    if (!pacoteSelecionado || pessoas <= 0) return 0;
+    const valorBase = pacoteSelecionado.precoBase;
+    const adicional = pessoas > 50 ? (pessoas - 50) * 25 : 0; // R$25 por pessoa extra
+    return valorBase + adicional;
   };
 
   const contratar = async () => {
     const endereco = `${bairro}, ${numero} - ${cidade}/${estado}${complemento ? " - " + complemento : ""}`;
+    const precoFinal = calcularValorTotal();
     try {
       await addDoc(collection(db, "pacotes"), {
         uid: usuario?.uid || null,
         nome: pacoteSelecionado.nome,
         bebidas: pacoteSelecionado.bebidas,
-        preco: pacoteSelecionado.preco,
+        preco: precoFinal,
         pessoas,
         dataEvento,
         endereco,
@@ -103,15 +106,20 @@ function ContratarPacotePronto() {
     }
   };
 
-  if (!pacoteSelecionado) {
-    return <p className="text-center text-gray-500 mt-10">Pacote não encontrado.</p>;
-  }
+  if (!pacoteSelecionado) return <p className="text-center text-gray-500 mt-10">Pacote não encontrado.</p>;
 
   return (
     <div className="max-w-xl mx-auto bg-white text-black p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold text-[#F4A300] mb-4">{pacoteSelecionado.nome}</h2>
-      <p className="mb-2"><strong>Bebidas:</strong> {pacoteSelecionado.bebidas.join(", ")}</p>
-      <p className="mb-6"><strong>Valor:</strong> R$ {pacoteSelecionado.preco}</p>
+      <p><strong>Bebidas:</strong> {pacoteSelecionado.bebidas.join(", ")}</p>
+
+      {pessoas > 0 && (
+        <div className="my-4 p-4 bg-gray-100 rounded text-sm space-y-1">
+          <p><strong>Resumo:</strong></p>
+          <p>👥 {pessoas} pessoa(s)</p>
+          <p>💰 Valor estimado: <strong>R$ {calcularValorTotal()}</strong></p>
+        </div>
+      )}
 
       {mensagem ? (
         <div className="bg-green-100 border border-green-400 text-green-800 p-4 rounded text-center font-medium">
@@ -119,9 +127,6 @@ function ContratarPacotePronto() {
         </div>
       ) : (
         <div className="space-y-4">
-          <label className="block text-sm font-medium text-gray-700">
-            Quantidade de pessoas
-          </label>
           <input
             type="number"
             placeholder="Ex: 50 pessoas"
@@ -145,49 +150,12 @@ function ContratarPacotePronto() {
             📍 Usar minha localização atual
           </button>
 
-          <input
-            type="text"
-            placeholder="CEP"
-            className="w-full p-3 bg-white border border-gray-300 rounded"
-            value={cep}
-            onChange={(e) => setCep(e.target.value)}
-            onBlur={buscarEndereco}
-          />
-          <input
-            type="text"
-            placeholder="Cidade"
-            className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
-            value={cidade}
-            readOnly
-          />
-          <input
-            type="text"
-            placeholder="Estado"
-            className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
-            value={estado}
-            readOnly
-          />
-          <input
-            type="text"
-            placeholder="Bairro"
-            className="w-full p-3 bg-white border border-gray-300 rounded"
-            value={bairro}
-            onChange={(e) => setBairro(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Número"
-            className="w-full p-3 bg-white border border-gray-300 rounded"
-            value={numero}
-            onChange={(e) => setNumero(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Complemento"
-            className="w-full p-3 bg-white border border-gray-300 rounded"
-            value={complemento}
-            onChange={(e) => setComplemento(e.target.value)}
-          />
+          <input type="text" placeholder="CEP" className="w-full p-3 bg-white border border-gray-300 rounded" value={cep} onChange={(e) => setCep(e.target.value)} onBlur={buscarEndereco} />
+          <input type="text" placeholder="Cidade" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={cidade} readOnly />
+          <input type="text" placeholder="Estado" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={estado} readOnly />
+          <input type="text" placeholder="Bairro" className="w-full p-3 bg-white border border-gray-300 rounded" value={bairro} onChange={(e) => setBairro(e.target.value)} />
+          <input type="text" placeholder="Número" className="w-full p-3 bg-white border border-gray-300 rounded" value={numero} onChange={(e) => setNumero(e.target.value)} />
+          <input type="text" placeholder="Complemento" className="w-full p-3 bg-white border border-gray-300 rounded" value={complemento} onChange={(e) => setComplemento(e.target.value)} />
 
           <button
             onClick={contratar}
