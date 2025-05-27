@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { motion, AnimatePresence } from "framer-motion";
 
 function EditablePackageWizard() {
   const [usuario] = useAuthState(auth);
@@ -11,29 +12,29 @@ function EditablePackageWizard() {
   const [barmen, setBarmen] = useState(1);
   const [bebidas, setBebidas] = useState([]);
   const [insumos, setInsumos] = useState([]);
+  const [pedidoEnviado, setPedidoEnviado] = useState(false);
   const [cep, setCep] = useState("");
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
   const [bairro, setBairro] = useState("");
   const [numero, setNumero] = useState("");
   const [complemento, setComplemento] = useState("");
-  const [pedidoEnviado, setPedidoEnviado] = useState(false);
 
   const navigate = useNavigate();
 
   const tiposBebida = ["Vodka", "Gin", "Whisky", "Cerveja", "Espumante", "Drinks Autorais"];
   const tiposInsumos = ["Gelo", "Copos", "Guardanapos", "Canudos", "Limão", "Açúcar"];
 
-  const toggleBebida = (item) => {
-    setBebidas((prev) =>
-      prev.includes(item) ? prev.filter((b) => b !== item) : [...prev, item]
+  const toggleItem = (item, list, setList) => {
+    setList((prev) =>
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
     );
   };
 
-  const toggleInsumo = (item) => {
-    setInsumos((prev) =>
-      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
-    );
+  const calcularBarmenRecomendado = (p) => {
+    if (p <= 50) return 1;
+    if (p <= 100) return 2;
+    return Math.ceil(p / 50);
   };
 
   const buscarEndereco = async () => {
@@ -51,18 +52,37 @@ function EditablePackageWizard() {
     }
   };
 
-  const proximo = () => setStep((prev) => prev + 1);
-  const voltar = () => setStep((prev) => prev - 1);
-
-  const calcularBarmenRecomendado = (p) => {
-    if (p <= 50) return 1;
-    if (p <= 100) return 2;
-    return Math.ceil(p / 50);
+  const usarLocalizacaoAtual = async () => {
+    if (!navigator.geolocation) {
+      alert("Geolocalização não é suportada pelo navegador.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await res.json();
+          const addr = data.address;
+          setCidade(addr.city || addr.town || addr.village || "");
+          setEstado(addr.state || "");
+          setBairro(addr.suburb || addr.neighbourhood || "");
+          setCep(addr.postcode || "");
+        } catch (err) {
+          console.error("Erro ao obter endereço:", err);
+          alert("Não foi possível obter a localização.");
+        }
+      },
+      () => {
+        alert("Permissão negada ou erro ao acessar a localização.");
+      }
+    );
   };
 
   const finalizar = async () => {
     const endereco = `${bairro}, ${numero} - ${cidade}/${estado}${complemento ? " - " + complemento : ""}`;
-
     try {
       await addDoc(collection(db, "pacotes"), {
         uid: usuario?.uid || null,
@@ -71,12 +91,10 @@ function EditablePackageWizard() {
         bebidas,
         insumos,
         endereco,
-        dataEvento: new Date(),
         preco: 500 + barmen * 600 + bebidas.length * 100 + insumos.length * 30,
         status: "em análise",
         criadoEm: new Date(),
       });
-
       setPedidoEnviado(true);
     } catch (error) {
       console.error("Erro ao salvar pacote:", error);
@@ -84,197 +102,190 @@ function EditablePackageWizard() {
     }
   };
 
-  return (
-    <div className="max-w-xl mx-auto p-6 bg-white text-black">
-      {pedidoEnviado && (
-        <div className="bg-green-100 border border-green-400 text-green-800 rounded p-4 mb-6 text-center">
-          <h2 className="text-xl font-bold mb-2">Pedido enviado com sucesso!</h2>
-          <p>Aguardando confirmação para realizar o pagamento.</p>
+  const etapas = [
+    {
+      id: 1,
+      titulo: "Número de Pessoas",
+      conteudo: (
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-gray-700">Quantidade de pessoas</label>
+          <input
+            type="number"
+            placeholder="Ex: 50"
+            className="w-full p-3 border border-gray-300 rounded"
+            value={pessoas}
+            onChange={(e) => {
+              const valor = Number(e.target.value);
+              setPessoas(valor);
+              if (valor > 0) setBarmen(calcularBarmenRecomendado(valor));
+            }}
+          />
         </div>
-      )}
+      )
+    },
+    {
+      id: 2,
+      titulo: "Escolha as Bebidas",
+      conteudo: (
+        <div className="flex flex-wrap gap-4 justify-center">
+          {tiposBebida.map((bebida) => (
+            <button
+              key={bebida}
+              onClick={() => toggleItem(bebida, bebidas, setBebidas)}
+              className={`w-32 h-24 rounded-lg shadow flex items-center justify-center text-sm font-semibold transition ${
+                bebidas.includes(bebida) ? "bg-[#F4A300] text-black" : "bg-gray-100 text-black"
+              }`}
+            >
+              🍸 {bebida}
+            </button>
+          ))}
+        </div>
+      )
+    },
+    {
+      id: 3,
+      titulo: "Escolha os Insumos",
+      conteudo: (
+        <div className="flex flex-wrap gap-4 justify-center">
+          {tiposInsumos.map((insumo) => (
+            <button
+              key={insumo}
+              onClick={() => toggleItem(insumo, insumos, setInsumos)}
+              className={`w-32 h-24 rounded-lg shadow flex items-center justify-center text-sm font-semibold transition ${
+                insumos.includes(insumo) ? "bg-[#F4A300] text-black" : "bg-gray-100 text-black"
+              }`}
+            >
+              🧃 {insumo}
+            </button>
+          ))}
+        </div>
+      )
+    },
+    {
+      id: 4,
+      titulo: "Local do Evento",
+      conteudo: (
+        <div className="space-y-4">
+          <button
+            onClick={usarLocalizacaoAtual}
+            className="w-full bg-gray-200 text-sm text-black py-2 rounded hover:bg-gray-300 transition"
+          >
+            📍 Usar minha localização atual
+          </button>
+          <input
+            type="text"
+            placeholder="CEP"
+            className="w-full p-3 bg-white border border-gray-300 rounded"
+            value={cep}
+            onChange={(e) => setCep(e.target.value)}
+            onBlur={buscarEndereco}
+          />
+          <input
+            type="text"
+            placeholder="Cidade"
+            className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
+            value={cidade}
+            readOnly
+          />
+          <input
+            type="text"
+            placeholder="Estado"
+            className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
+            value={estado}
+            readOnly
+          />
+          <input
+            type="text"
+            placeholder="Bairro"
+            className="w-full p-3 bg-white border border-gray-300 rounded"
+            value={bairro}
+            onChange={(e) => setBairro(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Número"
+            className="w-full p-3 bg-white border border-gray-300 rounded"
+            value={numero}
+            onChange={(e) => setNumero(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Complemento"
+            className="w-full p-3 bg-white border border-gray-300 rounded"
+            value={complemento}
+            onChange={(e) => setComplemento(e.target.value)}
+          />
+        </div>
+      )
+    },
+    {
+      id: 5,
+      titulo: "Resumo do Pedido",
+      conteudo: (
+        <div className="bg-gray-100 p-4 rounded space-y-2">
+          <p><strong>Pessoas:</strong> {pessoas}</p>
+          <p><strong>Barmen:</strong> {barmen}</p>
+          <p><strong>Bebidas:</strong> {bebidas.join(", ") || "Nenhuma"}</p>
+          <p><strong>Insumos:</strong> {insumos.join(", ") || "Nenhum"}</p>
+          <p><strong>Endereço:</strong> {bairro}, {numero} - {cidade}/{estado}</p>
+        </div>
+      )
+    }
+  ];
 
-      {!pedidoEnviado && (
-        <>
-          {step === 1 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-[#F4A300] text-center">Etapa 1: Número de Pessoas</h2>
+  const etapaAtual = etapas.find((e) => e.id === step);
 
-              <input
-                type="number"
-                className="w-full p-3 bg-white border border-gray-300 rounded shadow-sm"
-                min={1}
-                value={pessoas}
-                onChange={(e) => {
-                  const valor = Number(e.target.value);
-                  setPessoas(valor);
-                  if (valor > 0) {
-                    setBarmen(calcularBarmenRecomendado(valor));
-                  }
-                }}
-              />
+  return (
+    <div className="max-w-xl mx-auto p-6 bg-white text-black space-y-6">
+      <div className="w-full bg-gray-200 h-2 rounded">
+        <div className="bg-[#F4A300] h-2 rounded transition-all duration-300" style={{ width: `${(step / etapas.length) * 100}%` }}></div>
+      </div>
 
-              {pessoas > 0 && (
-                <>
-                  <label className="block">
-                    Recomendamos {calcularBarmenRecomendado(pessoas)} barmen. Quantos deseja contratar?
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    className="w-full p-3 bg-white border border-gray-300 rounded shadow-sm"
-                    value={barmen}
-                    onChange={(e) => setBarmen(Number(e.target.value))}
-                  />
-                </>
-              )}
+      <h2 className="text-2xl font-bold text-[#F4A300] text-center">{etapaAtual.titulo}</h2>
 
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={proximo}
-                  className="bg-[#F4A300] text-black px-6 py-2 rounded hover:bg-yellow-500 transition font-semibold"
-                  disabled={pessoas <= 0}
-                >
-                  Próximo
-                </button>
-              </div>
-            </div>
-          )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -50 }}
+          transition={{ duration: 0.3 }}
+        >
+          {etapaAtual.conteudo}
+        </motion.div>
+      </AnimatePresence>
 
-          {step === 2 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-[#F4A300] text-center">Etapa 2: Bebidas</h2>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {tiposBebida.map((bebida) => (
-                  <button
-                    key={bebida}
-                    onClick={() => toggleBebida(bebida)}
-                    className={`px-4 py-2 rounded-full text-sm border transition ${
-                      bebidas.includes(bebida)
-                        ? "bg-[#F4A300] text-black font-semibold"
-                        : "bg-gray-100 text-black"
-                    }`}
-                  >
-                    {bebida}
-                  </button>
-                ))}
-              </div>
-              <div className="flex justify-between mt-6">
-                <button
-                  onClick={voltar}
-                  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
-                >
-                  Voltar
-                </button>
-                <button
-                  onClick={proximo}
-                  className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
-                >
-                  Próximo
-                </button>
-              </div>
-            </div>
-          )}
+      <div className="flex justify-between mt-6">
+        {step > 1 && (
+          <button
+            onClick={() => setStep((s) => s - 1)}
+            className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            Voltar
+          </button>
+        )}
 
-          {step === 3 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-[#F4A300] text-center">Etapa 3: Insumos</h2>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {tiposInsumos.map((insumo) => (
-                  <button
-                    key={insumo}
-                    onClick={() => toggleInsumo(insumo)}
-                    className={`px-4 py-2 rounded-full text-sm border transition ${
-                      insumos.includes(insumo)
-                        ? "bg-[#F4A300] text-black font-semibold"
-                        : "bg-gray-100 text-black"
-                    }`}
-                  >
-                    {insumo}
-                  </button>
-                ))}
-              </div>
-              <div className="flex justify-between mt-6">
-                <button
-                  onClick={voltar}
-                  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
-                >
-                  Voltar
-                </button>
-                <button
-                  onClick={proximo}
-                  className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
-                >
-                  Próximo
-                </button>
-              </div>
-            </div>
-          )}
+        {step < etapas.length ? (
+          <button
+            onClick={() => setStep((s) => s + 1)}
+            className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
+          >
+            Próximo
+          </button>
+        ) : (
+          <button
+            onClick={finalizar}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Finalizar Pedido
+          </button>
+        )}
+      </div>
 
-          {step === 4 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-[#F4A300] text-center">Etapa 4: Local do Evento</h2>
-
-              <input
-                type="text"
-                className="w-full p-3 bg-white border border-gray-300 rounded"
-                placeholder="CEP"
-                value={cep}
-                onChange={(e) => setCep(e.target.value)}
-                onBlur={buscarEndereco}
-              />
-              <input
-                type="text"
-                className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
-                placeholder="Cidade"
-                value={cidade}
-                readOnly
-              />
-              <input
-                type="text"
-                className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
-                placeholder="Estado"
-                value={estado}
-                readOnly
-              />
-              <input
-                type="text"
-                className="w-full p-3 bg-white border border-gray-300 rounded"
-                placeholder="Bairro"
-                value={bairro}
-                onChange={(e) => setBairro(e.target.value)}
-              />
-              <input
-                type="text"
-                className="w-full p-3 bg-white border border-gray-300 rounded"
-                placeholder="Número"
-                value={numero}
-                onChange={(e) => setNumero(e.target.value)}
-              />
-              <input
-                type="text"
-                className="w-full p-3 bg-white border border-gray-300 rounded"
-                placeholder="Complemento"
-                value={complemento}
-                onChange={(e) => setComplemento(e.target.value)}
-              />
-
-              <div className="flex justify-between mt-6">
-                <button
-                  onClick={voltar}
-                  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
-                >
-                  Voltar
-                </button>
-                <button
-                  onClick={finalizar}
-                  className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
-                >
-                  Finalizar
-                </button>
-              </div>
-            </div>
-          )}
-        </>
+      {pedidoEnviado && (
+        <div className="bg-green-100 border border-green-400 text-green-800 p-4 rounded text-center font-medium mt-4">
+          Pedido enviado com sucesso! Aguardando confirmação.
+        </div>
       )}
     </div>
   );

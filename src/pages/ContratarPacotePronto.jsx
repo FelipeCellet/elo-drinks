@@ -51,6 +51,37 @@ function ContratarPacotePronto() {
     }
   };
 
+  const usarLocalizacaoAtual = async () => {
+    if (!navigator.geolocation) {
+      alert("Geolocalização não é suportada pelo navegador.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await res.json();
+          const addr = data.address;
+
+          setCidade(addr.city || addr.town || addr.village || "");
+          setEstado(addr.state || "");
+          setBairro(addr.suburb || addr.neighbourhood || "");
+          setCep(addr.postcode || "");
+        } catch (err) {
+          console.error("Erro ao obter endereço:", err);
+          alert("Não foi possível obter a localização.");
+        }
+      },
+      () => {
+        alert("Permissão negada ou erro ao acessar a localização.");
+      }
+    );
+  };
+
   const contratar = async () => {
     const endereco = `${bairro}, ${numero} - ${cidade}/${estado}${complemento ? " - " + complemento : ""}`;
     try {
@@ -64,7 +95,7 @@ function ContratarPacotePronto() {
         endereco,
         criadoEm: new Date(),
         status: "em análise",
-        pacotePronto: true
+        pacotePronto: true,
       });
       setMensagem("Pedido enviado com sucesso! Aguarde a confirmação do administrador para realizar o pagamento.");
     } catch (error) {
@@ -88,13 +119,17 @@ function ContratarPacotePronto() {
         </div>
       ) : (
         <div className="space-y-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Quantidade de pessoas
+          </label>
           <input
             type="number"
-            placeholder="Quantidade de pessoas"
+            placeholder="Ex: 50 pessoas"
             className="w-full p-3 bg-white border border-gray-300 rounded shadow-sm"
             value={pessoas}
             onChange={(e) => setPessoas(Number(e.target.value))}
           />
+
           <DatePicker
             selected={dataEvento}
             onChange={(date) => setDataEvento(date)}
@@ -102,6 +137,14 @@ function ContratarPacotePronto() {
             placeholderText="Data do evento"
             className="w-full p-3 bg-white border border-gray-300 rounded shadow-sm"
           />
+
+          <button
+            onClick={usarLocalizacaoAtual}
+            className="w-full bg-gray-200 text-sm text-black py-2 rounded hover:bg-gray-300 transition"
+          >
+            📍 Usar minha localização atual
+          </button>
+
           <input
             type="text"
             placeholder="CEP"
@@ -145,6 +188,7 @@ function ContratarPacotePronto() {
             value={complemento}
             onChange={(e) => setComplemento(e.target.value)}
           />
+
           <button
             onClick={contratar}
             className="w-full bg-[#F4A300] text-black py-3 rounded font-semibold hover:bg-yellow-500 transition"
