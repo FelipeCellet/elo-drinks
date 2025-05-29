@@ -2,6 +2,7 @@
   "name": "elo-drinks-firebase",
   "version": "0.0.1",
   "scripts": {
+    "prebuild": "npm install -g vite",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
