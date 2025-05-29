@@ -7,7 +7,7 @@ import Home from './pages/Home';
 import Packages from './pages/Packages';
 import CustomPackage from './pages/CustomPackage';
 import Login from './pages/Login';
-import Navbar from './components/Navbar';
+import Navbar from './components/navbar';
 import PackagesDetails from "./pages/PackagesDetails";
 import ContratarPacotePronto from "./pages/ContratarPacotePronto";
 import Payment from "./pages/Payment";
