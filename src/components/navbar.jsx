@@ -15,8 +15,8 @@ function Navbar({ usuario }) {
       isActive ? "text-[#F4A300]" : "text-gray-300"
     } hover:text-[#F4A300] transition`;
 
-  // ✅ Define o e-mail do administrador autorizado
-  const isAdmin = usuario?.email === "fcellet@gmail.com";
+  // ✅ Verifica se o usuário tem permissão de admin via Firestore
+  const isAdmin = usuario?.isAdmin === true;
 
   return (
     <header className="bg-black shadow p-4 border-b border-gray-800">
@@ -44,7 +44,7 @@ function Navbar({ usuario }) {
             Portfólio
           </NavLink>
 
-          {/* ✅ Só mostra se for o admin logado */}
+          {/* ✅ Mostra o link do Admin apenas se for admin */}
           {isAdmin && (
             <NavLink to="/admin" className={linkClasses}>
               Admin

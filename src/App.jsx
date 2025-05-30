@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, db } from './firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 import Home from './pages/Home';
 import Packages from './pages/Packages';
@@ -20,17 +21,33 @@ import AdminAprovacoes from "./pages/AdminAprovacoes";
 import AdminLayout from "./pages/AdminLayout"; 
 import AdminPagamentos from "./pages/AdminPagamentos";
 
-
 function AppWrapper() {
   const [usuario, setUsuario] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUsuario(user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        let isAdmin = false;
+
+        try {
+          const ref = doc(db, "usuarios", user.uid);
+          const snap = await getDoc(ref);
+          if (snap.exists()) {
+            isAdmin = snap.data().isAdmin === true;
+          }
+        } catch (error) {
+          console.error("Erro ao buscar dados do usuário:", error);
+        }
+
+        setUsuario({ ...user, isAdmin });
+      } else {
+        setUsuario(null);
+      }
       setCarregando(false);
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -42,7 +59,6 @@ function AppWrapper() {
     );
   }
 
-  // Esconder navbar somente nas páginas de login e register
   const esconderNavbar = ["/login", "/register"].includes(location.pathname);
 
   return (
@@ -63,11 +79,11 @@ function AppWrapper() {
           <Route path="/register" element={usuario ? <Navigate to="/" replace /> : <Register />} />
           <Route path="/meus-pacotes" element={usuario ? <MyPackages /> : <Navigate to="/login" replace />} />
 
-          {/* Rotas administrativas com layout de sidebar */}
-          <Route path="/admin" element={usuario && !usuario.isAnonymous ? <AdminLayout /> : <Navigate to="/login" replace />}>
+          {/* 🔒 Rotas protegidas para administradores */}
+          <Route path="/admin" element={usuario?.isAdmin ? <AdminLayout /> : <Navigate to="/login" replace />}>
             <Route path="dashboard" element={<DashboardAdmin />} />
             <Route path="aprovacoes" element={<AdminAprovacoes />} />
-            <Route path="/admin/pagamentos" element={<AdminPagamentos />} />
+            <Route path="pagamentos" element={<AdminPagamentos />} />
           </Route>
         </Routes>
       </main>
