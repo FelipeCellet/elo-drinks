@@ -20,6 +20,8 @@ import DashboardAdmin from "./pages/DashboardAdmin";
 import AdminAprovacoes from "./pages/AdminAprovacoes";
 import AdminLayout from "./pages/AdminLayout"; 
 import AdminPagamentos from "./pages/AdminPagamentos";
+import AdminPedidos from "./pages/AdminPedidos";
+
 
 function AppWrapper() {
   const [usuario, setUsuario] = useState(null);
@@ -84,6 +86,7 @@ function AppWrapper() {
             <Route path="dashboard" element={<DashboardAdmin />} />
             <Route path="aprovacoes" element={<AdminAprovacoes />} />
             <Route path="pagamentos" element={<AdminPagamentos />} />
+              <Route path="pedidos" element={<AdminPedidos />} />
           </Route>
         </Routes>
       </main>

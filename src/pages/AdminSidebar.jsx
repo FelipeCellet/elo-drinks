@@ -36,6 +36,12 @@ function AdminSidebar() {
         >
           💰 Pagamentos
         </NavLink>
+        <NavLink
+          to="/admin/pedidos"
+          className={({ isActive }) => `${linkBase} ${isActive ? activeClass : "text-gray-700"}`}
+        >
+          📦 Pedidos
+        </NavLink>
       </nav>
 
       <div className="border-t pt-4">

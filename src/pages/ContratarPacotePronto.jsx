@@ -88,19 +88,21 @@ function ContratarPacotePronto() {
     const endereco = `${bairro}, ${numero} - ${cidade}/${estado}${complemento ? " - " + complemento : ""}`;
     const precoFinal = calcularValorTotal();
     try {
-      await addDoc(collection(db, "pacotes"), {
-        uid: usuario?.uid || null,
-        nome: pacoteSelecionado.nome,
-        bebidas: pacoteSelecionado.bebidas,
-        preco: precoFinal,
-        pessoas,
-        dataEvento,
-        endereco,
-        criadoEm: new Date(),
-        status: "em análise",
-        statusPagamento: "pendente", // ✅ NOVO
-        pacotePronto: true,
-      });
+        await addDoc(collection(db, "pacotes"), {
+          uid: usuario?.uid || null,
+          email: usuario?.email || "visitante", // ✅ novo campo
+          nome: pacoteSelecionado.nome,
+          bebidas: pacoteSelecionado.bebidas,
+          preco: precoFinal,
+          pessoas,
+          dataEvento,
+          endereco,
+          criadoEm: new Date(),
+          status: "em análise",
+          statusPagamento: "pendente", // ✅ NOVO
+          pacotePronto: true,
+        });
+
 
       setMensagem("Pedido enviado com sucesso! Aguarde a confirmação do administrador para realizar o pagamento.");
     } catch (error) {

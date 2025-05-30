@@ -84,19 +84,21 @@ function EditablePackageWizard() {
   const finalizar = async () => {
     const endereco = `${bairro}, ${numero} - ${cidade}/${estado}${complemento ? " - " + complemento : ""}`;
     try {
-      await addDoc(collection(db, "pacotes"), {
-        uid: usuario?.uid || null,
-        pessoas,
-        barmen,
-        bebidas,
-        insumos,
-        endereco,
-        preco: 500 + barmen * 600 + bebidas.length * 100 + insumos.length * 30,
-        status: "em análise",
-        statusPagamento: "pendente", // ✅ novo campo adicionado
-        criadoEm: new Date(),
-        pacotePronto: false
-      });
+        await addDoc(collection(db, "pacotes"), {
+          uid: usuario?.uid || null,
+          email: usuario?.email || "visitante", // ✅ novo campo adicionado
+          pessoas,
+          barmen,
+          bebidas,
+          insumos,
+          endereco,
+          preco: 500 + barmen * 600 + bebidas.length * 100 + insumos.length * 30,
+          status: "em análise",
+          statusPagamento: "pendente", // ✅ novo campo adicionado
+          criadoEm: new Date(),
+          pacotePronto: false
+          });
+
 
       setPedidoEnviado(true);
     } catch (error) {
