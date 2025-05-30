@@ -18,6 +18,8 @@ import ConfirmacaoPedido from "./pages/ConfirmacaoPedido";
 import DashboardAdmin from "./pages/DashboardAdmin";
 import AdminAprovacoes from "./pages/AdminAprovacoes";
 import AdminLayout from "./pages/AdminLayout"; 
+import AdminPagamentos from "./pages/AdminPagamentos";
+
 
 function AppWrapper() {
   const [usuario, setUsuario] = useState(null);
@@ -65,6 +67,7 @@ function AppWrapper() {
           <Route path="/admin" element={usuario && !usuario.isAnonymous ? <AdminLayout /> : <Navigate to="/login" replace />}>
             <Route path="dashboard" element={<DashboardAdmin />} />
             <Route path="aprovacoes" element={<AdminAprovacoes />} />
+            <Route path="/admin/pagamentos" element={<AdminPagamentos />} />
           </Route>
         </Routes>
       </main>

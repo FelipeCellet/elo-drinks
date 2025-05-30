@@ -98,8 +98,10 @@ function ContratarPacotePronto() {
         endereco,
         criadoEm: new Date(),
         status: "em análise",
+        statusPagamento: "pendente", // ✅ NOVO
         pacotePronto: true,
       });
+
       setMensagem("Pedido enviado com sucesso! Aguarde a confirmação do administrador para realizar o pagamento.");
     } catch (error) {
       console.error("Erro ao contratar pacote:", error);

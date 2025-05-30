@@ -23,14 +23,14 @@ function ConfirmacaoPedido() {
 
   if (!pacote) {
     return (
-      <div className="text-white text-center mt-20">
+      <div className="text-center text-gray-600 mt-20">
         <p>Carregando dados do pedido...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-xl mx-auto text-white p-6 text-center">
+    <div className="max-w-xl mx-auto bg-white text-black p-6 text-center">
       <h2 className="text-3xl font-bold text-[#F4A300] mb-6">
         Pedido Confirmado!
       </h2>
@@ -38,15 +38,15 @@ function ConfirmacaoPedido() {
         Obrigado por contratar a <span className="font-semibold text-[#F4A300]">Elo Drinks</span>!
       </p>
 
-      <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 text-left space-y-2">
+      <div className="bg-white border border-[#F4A300] rounded-xl p-4 text-left space-y-2">
         <p><strong>Pacote:</strong> {pacote.nome || "Personalizado"}</p>
         <p><strong>Data:</strong> {pacote.dataEvento?.toDate?.().toLocaleDateString() || "-"}</p>
         <p><strong>Pessoas:</strong> {pacote.pessoas || "-"}</p>
         <p><strong>Barmen:</strong> {pacote.barmen || "-"}</p>
         <p><strong>Bebidas:</strong> {pacote.bebidas?.join(", ") || "-"}</p>
         <p><strong>Insumos:</strong> {pacote.insumos?.join(", ") || "-"}</p>
-        <p><strong>Endereço:</strong> {pacote.endereco}</p>
-        <p><strong>Preço:</strong> R$ {pacote.preco}</p>
+        <p><strong>Endereço:</strong> {pacote.endereco || "-"}</p>
+        <p><strong>Preço:</strong> R$ {pacote.preco?.toFixed(2).replace(".", ",") || "0,00"}</p>
       </div>
 
       <button

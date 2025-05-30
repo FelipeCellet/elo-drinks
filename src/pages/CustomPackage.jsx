@@ -93,8 +93,11 @@ function EditablePackageWizard() {
         endereco,
         preco: 500 + barmen * 600 + bebidas.length * 100 + insumos.length * 30,
         status: "em análise",
+        statusPagamento: "pendente", // ✅ novo campo adicionado
         criadoEm: new Date(),
+        pacotePronto: false
       });
+
       setPedidoEnviado(true);
     } catch (error) {
       console.error("Erro ao salvar pacote:", error);

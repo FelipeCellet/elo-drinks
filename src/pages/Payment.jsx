@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { QRCodeCanvas } from "qrcode.react";
 
 function Payment() {
   const { id } = useParams();
@@ -23,7 +24,7 @@ function Payment() {
 
   const finalizar = async () => {
     try {
-      await updateDoc(doc(db, "pacotes", id), { status: "pago" });
+      await updateDoc(doc(db, "pacotes", id), { status: "pago", statusPagamento: "pago" });
       navigate(`/confirmacao/${id}`);
     } catch (err) {
       console.error("Erro ao atualizar status:", err);
@@ -31,21 +32,20 @@ function Payment() {
     }
   };
 
-  if (!pacote) return <p className="text-white text-center mt-10">Carregando pacote...</p>;
+  if (!pacote) {
+    return <p className="text-center text-gray-500 mt-10">Carregando pacote...</p>;
+  }
 
   const enderecoFormatado = pacote.endereco || "-";
   const precoTotal = pacote.preco?.toFixed(2).replace(".", ",");
+  const payloadPix = `Pagamento Elo Drinks - Pedido ${id} - R$ ${pacote.preco}`;
 
-  // ✅ Se já estiver pago
-  if (pacote.status === "pago") {
-    return (
-      <div className="max-w-xl mx-auto p-6 text-white text-center">
-        <h2 className="text-3xl font-bold text-[#F4A300] mb-6">Pagamento Confirmado</h2>
-        <p className="text-green-300 mb-6">
-          ✅ Seu pagamento foi confirmado com sucesso! Nos vemos no evento. 🥂
-        </p>
+  return (
+    <div className="min-h-screen bg-white text-black p-6">
+      <div className="max-w-xl mx-auto">
+        <h2 className="text-3xl font-bold text-[#F4A300] mb-6 text-center">Resumo do Pacote</h2>
 
-        <div className="bg-black border border-gray-700 p-4 rounded-xl text-left space-y-2">
+        <div className="bg-white border border-[#F4A300] p-4 rounded-xl space-y-2">
           <p><strong>Quantidade de Pessoas:</strong> {pacote.pessoas}</p>
           <p><strong>Barmen:</strong> {pacote.barmen}</p>
           <p><strong>Bebidas:</strong> {pacote.bebidas?.join(", ") || "-"}</p>
@@ -53,100 +53,89 @@ function Payment() {
           <p><strong>Local:</strong> {enderecoFormatado}</p>
           <p><strong className="text-lg">Preço Total:</strong> <span className="text-[#F4A300] font-bold">R$ {precoTotal}</span></p>
         </div>
-      </div>
-    );
-  }
 
-  // ✅ Se ainda não estiver liberado
-  if (pacote.status !== "confirmado") {
-    return (
-      <div className="text-white text-center mt-20">
-        <h2 className="text-2xl font-bold text-red-500 mb-4">Pagamento não disponível</h2>
-        <p>Este pacote ainda está com status <strong>{pacote.status}</strong>. Aguarde a aprovação do administrador.</p>
-      </div>
-    );
-  }
-
-  // ✅ Pagamento disponível (status: confirmado)
-  return (
-    <div className="max-w-xl mx-auto p-6 text-white">
-      <h2 className="text-3xl font-bold text-[#F4A300] mb-6 text-center">Resumo do Pacote</h2>
-      <div className="bg-black border border-gray-700 p-4 rounded-xl space-y-2">
-        <p><strong>Quantidade de Pessoas:</strong> {pacote.pessoas}</p>
-        <p><strong>Barmen:</strong> {pacote.barmen}</p>
-        <p><strong>Bebidas:</strong> {pacote.bebidas?.join(", ") || "-"}</p>
-        <p><strong>Insumos:</strong> {pacote.insumos?.join(", ") || "-"}</p>
-        <p><strong>Local:</strong> {enderecoFormatado}</p>
-        <p><strong className="text-lg">Preço Total:</strong> <span className="text-[#F4A300] font-bold">R$ {precoTotal}</span></p>
-      </div>
-
-      <h3 className="mt-10 mb-2 text-xl font-semibold text-[#F4A300]">Escolha a forma de pagamento</h3>
-      <div className="flex gap-4 mb-6">
-        <button
-          onClick={() => setMetodo("pix")}
-          className={`flex-1 py-2 rounded ${metodo === "pix" ? "bg-[#F4A300] text-black" : "bg-gray-800 text-white"}`}
-        >
-          Pix
-        </button>
-        <button
-          onClick={() => setMetodo("cartao")}
-          className={`flex-1 py-2 rounded ${metodo === "cartao" ? "bg-[#F4A300] text-black" : "bg-gray-800 text-white"}`}
-        >
-          Cartão de Crédito
-        </button>
-      </div>
-
-      {metodo === "pix" && (
-        <div className="bg-gray-900 p-4 rounded-lg text-center">
-          <p className="mb-4">Use o QR Code abaixo para realizar o pagamento via Pix:</p>
-          <img src="/pix_qrcode.png" alt="QR Code Pix" className="mx-auto w-40" />
-          <button onClick={finalizar} className="w-full mt-4 bg-[#F4A300] text-black py-2 rounded hover:bg-yellow-500 transition">
-            Finalizar Pagamento
+        <h3 className="mt-10 mb-2 text-xl font-semibold text-[#F4A300]">Escolha a forma de pagamento</h3>
+        <div className="flex gap-4 mb-6">
+          <button
+            onClick={() => setMetodo("pix")}
+            className={`flex-1 py-2 rounded ${metodo === "pix" ? "bg-[#F4A300] text-black" : "bg-gray-200 text-black"}`}
+          >
+            Pix
+          </button>
+          <button
+            onClick={() => setMetodo("cartao")}
+            className={`flex-1 py-2 rounded ${metodo === "cartao" ? "bg-[#F4A300] text-black" : "bg-gray-200 text-black"}`}
+          >
+            Cartão de Crédito
           </button>
         </div>
-      )}
 
-      {metodo === "cartao" && (
-        <div className="bg-gray-900 p-4 rounded-lg space-y-3">
-          <input
-            type="text"
-            placeholder="Nome no Cartão"
-            value={cartao.nome}
-            onChange={(e) => setCartao({ ...cartao, nome: e.target.value })}
-            className="w-full p-2 bg-gray-800 text-white border rounded"
-          />
-          <input
-            type="text"
-            placeholder="Número do Cartão"
-            value={cartao.numero}
-            onChange={(e) => setCartao({ ...cartao, numero: e.target.value })}
-            className="w-full p-2 bg-gray-800 text-white border rounded"
-          />
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Validade (MM/AA)"
-              value={cartao.validade}
-              onChange={(e) => setCartao({ ...cartao, validade: e.target.value })}
-              className="w-1/2 p-2 bg-gray-800 text-white border rounded"
+        {metodo === "pix" && (
+          <div className="bg-white border border-[#F4A300] p-4 rounded-lg flex flex-col items-center text-center">
+            <p className="mb-4">Escaneie o QR Code para pagar via Pix:</p>
+            <QRCodeCanvas
+              value={payloadPix}
+              size={180}
+              bgColor="#ffffff"
+              fgColor="#000000"
+              level="H"
             />
-            <input
-              type="text"
-              placeholder="CVV"
-              value={cartao.cvv}
-              onChange={(e) => setCartao({ ...cartao, cvv: e.target.value })}
-              className="w-1/2 p-2 bg-gray-800 text-white border rounded"
-            />
+            <button
+              onClick={finalizar}
+              className="w-full max-w-xs mt-4 bg-[#F4A300] text-black py-2 rounded hover:bg-yellow-500 transition"
+            >
+              Confirmar Pagamento
+            </button>
           </div>
-          <button onClick={finalizar} className="w-full mt-4 bg-[#F4A300] text-black py-2 rounded hover:bg-yellow-500 transition">
-            Finalizar Pagamento
-          </button>
-        </div>
-      )}
+        )}
 
-      {!metodo && (
-        <p className="text-center text-sm text-gray-400 mt-6">Essa é apenas uma demonstração de pagamento.</p>
-      )}
+        {metodo === "cartao" && (
+          <div className="bg-white border border-[#F4A300] p-4 rounded-lg space-y-3">
+            <input
+              type="text"
+              placeholder="Nome no Cartão"
+              value={cartao.nome}
+              onChange={(e) => setCartao({ ...cartao, nome: e.target.value })}
+              className="w-full p-2 bg-white border border-gray-300 rounded"
+            />
+            <input
+              type="text"
+              placeholder="Número do Cartão"
+              value={cartao.numero}
+              onChange={(e) => setCartao({ ...cartao, numero: e.target.value })}
+              className="w-full p-2 bg-white border border-gray-300 rounded"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Validade (MM/AA)"
+                value={cartao.validade}
+                onChange={(e) => setCartao({ ...cartao, validade: e.target.value })}
+                className="w-1/2 p-2 bg-white border border-gray-300 rounded"
+              />
+              <input
+                type="text"
+                placeholder="CVV"
+                value={cartao.cvv}
+                onChange={(e) => setCartao({ ...cartao, cvv: e.target.value })}
+                className="w-1/2 p-2 bg-white border border-gray-300 rounded"
+              />
+            </div>
+            <button
+              onClick={finalizar}
+              className="w-full bg-[#F4A300] text-black py-2 rounded hover:bg-yellow-500 transition"
+            >
+              Finalizar Pagamento
+            </button>
+          </div>
+        )}
+
+        {!metodo && (
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Escolha um método de pagamento para continuar.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

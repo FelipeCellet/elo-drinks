@@ -1,121 +1,83 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
 
-function DashboardAdmin() {
+function Admin() {
   const [pacotes, setPacotes] = useState([]);
+  const [usuario] = useAuthState(auth);
 
   useEffect(() => {
     const buscarPacotes = async () => {
       const snap = await getDocs(collection(db, "pacotes"));
-      const lista = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const lista = snap.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => b.criadoEm?.seconds - a.criadoEm?.seconds);
       setPacotes(lista);
     };
-
     buscarPacotes();
   }, []);
 
-  const total = pacotes.length;
-  const emAnalise = pacotes.filter((p) => p.status === "em análise").length;
-  const aprovados = pacotes.filter((p) => p.status === "confirmado");
-  const rejeitados = pacotes.filter((p) => p.status === "rejeitado").length;
-  const receitaTotal = aprovados.reduce((soma, p) => soma + (p.preco || 0), 0);
-
-  const dadosStatus = [
-    { name: "Em Análise", value: emAnalise },
-    { name: "Aprovado", value: aprovados.length },
-    { name: "Rejeitado", value: rejeitados },
-  ];
-
-  const cores = ["#F4A300", "#22c55e", "#ef4444"];
+  const atualizarStatus = async (id, novoStatus) => {
+    const ref = doc(db, "pacotes", id);
+    await updateDoc(ref, {
+      status: novoStatus,
+      dataAtualizacao: serverTimestamp(),
+      aprovadoPor: usuario?.email || "admin",
+    });
+    setPacotes((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: novoStatus } : p))
+    );
+  };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-10 text-black">
-      <h2 className="text-3xl font-bold text-[#F4A300] text-center">Dashboard Admin</h2>
+    <div className="max-w-4xl mx-auto mt-10 space-y-6 p-4 text-black">
+      <h2 className="text-3xl font-bold text-[#F4A300] text-center">
+        Painel Admin - Aprovação de Pacotes
+      </h2>
 
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-        <ResumoCard titulo="Total de Pacotes" valor={total} cor="text-black" />
-        <ResumoCard titulo="Em Análise" valor={emAnalise} cor="text-yellow-500" />
-        <ResumoCard titulo="Aprovados" valor={aprovados.length} cor="text-green-600" />
-        <ResumoCard titulo="Rejeitados" valor={rejeitados} cor="text-red-600" />
-      </div>
+      {pacotes.filter((p) => p.status === "em análise").length === 0 ? (
+        <p className="text-center text-gray-500">Nenhum pacote pendente.</p>
+      ) : (
+        pacotes
+          .filter((p) => p.status === "em análise")
+          .map((p) => (
+            <div
+              key={p.id}
+              className="bg-white border border-gray-300 rounded-lg p-4 shadow space-y-2"
+            >
+              <p><strong>Pessoas:</strong> {p.pessoas}</p>
+              <p><strong>Barmen:</strong> {p.barmen}</p>
+              <p><strong>Valor:</strong> R$ {p.preco}</p>
+              <p><strong>Endereço:</strong> {p.endereco}</p>
+              <p><strong>Bebidas:</strong> {p.bebidas?.join(", ") || "Nenhuma"}</p>
+              <p><strong>Insumos:</strong> {p.insumos?.join(", ") || "Nenhum"}</p>
 
-      {/* Receita total */}
-      <div className="bg-white rounded shadow p-6 text-center">
-        <p className="text-gray-500 text-sm">Receita Estimada dos Aprovados</p>
-        <p className="text-3xl font-bold text-green-700">R$ {receitaTotal}</p>
-      </div>
-
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-10">
-        {/* Gráfico de barras */}
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="text-lg font-semibold mb-4 text-center">Distribuição de Pacotes</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={dadosStatus}>
-              <XAxis dataKey="name" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="value">
-                {dadosStatus.map((_, i) => (
-                  <Cell key={i} fill={cores[i]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Gráfico de pizza */}
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="text-lg font-semibold mb-4 text-center">Proporção por Status</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={dadosStatus}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label
-              >
-                {dadosStatus.map((_, i) => (
-                  <Cell key={i} fill={cores[i]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+              <div className="flex gap-4 mt-4">
+                <button
+                  onClick={() => atualizarStatus(p.id, "confirmado")}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded transition"
+                >
+                  Aprovar
+                </button>
+                <button
+                  onClick={() => atualizarStatus(p.id, "rejeitado")}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded transition"
+                >
+                  Rejeitar
+                </button>
+              </div>
+            </div>
+          ))
+      )}
     </div>
   );
 }
 
-function ResumoCard({ titulo, valor, cor }) {
-  return (
-    <div className="bg-white rounded shadow p-4">
-      <p className="text-gray-500 text-sm">{titulo}</p>
-      <p className={`text-2xl font-bold ${cor}`}>{valor}</p>
-    </div>
-  );
-}
-
-export default DashboardAdmin;
+export default Admin;
