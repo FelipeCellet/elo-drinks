@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 function EditablePackageWizard() {
   const [usuario] = useAuthState(auth);
   const [step, setStep] = useState(1);
-  const [pessoas, setPessoas] = useState(0);
+  const [pessoas, setPessoas] = useState("");
   const [barmen, setBarmen] = useState(1);
   const [bebidas, setBebidas] = useState([]);
   const [insumos, setInsumos] = useState([]);
@@ -54,15 +54,14 @@ function EditablePackageWizard() {
 
   const usarLocalizacaoAtual = async () => {
     if (!navigator.geolocation) {
-      alert("Geolocalização não é suportada pelo navegador.");
+      alert("Geolocalização não é suportada.");
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+      async ({ coords }) => {
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.latitude}&lon=${coords.longitude}`
           );
           const data = await res.json();
           const addr = data.address;
@@ -71,42 +70,64 @@ function EditablePackageWizard() {
           setBairro(addr.suburb || addr.neighbourhood || "");
           setCep(addr.postcode || "");
         } catch (err) {
-          console.error("Erro ao obter endereço:", err);
-          alert("Não foi possível obter a localização.");
+          console.error("Erro ao obter localização:", err);
         }
       },
-      () => {
-        alert("Permissão negada ou erro ao acessar a localização.");
-      }
+      () => alert("Erro ao acessar localização.")
+    );
+  };
+
+  const etapaValida = () => {
+    switch (step) {
+      case 1:
+        return parseInt(pessoas) > 0;
+      case 2:
+        return bebidas.length > 0;
+      case 3:
+        return insumos.length > 0;
+      case 4:
+        return cep && cidade && estado && bairro && numero;
+      default:
+        return true;
+    }
+  };
+
+  const pedidoValido = () => {
+    const pessoasNum = parseInt(pessoas);
+    return (
+      pessoasNum > 0 &&
+      bebidas.length > 0 &&
+      insumos.length > 0 &&
+      cep && cidade && estado && bairro && numero
     );
   };
 
   const finalizar = async () => {
+    if (!pedidoValido()) {
+      alert("Preencha todos os campos corretamente.");
+      return;
+    }
     const endereco = `${bairro}, ${numero} - ${cidade}/${estado}${complemento ? " - " + complemento : ""}`;
     try {
-        await addDoc(collection(db, "pacotes"), {
-          uid: usuario?.uid || null,
-          email: usuario?.email || "visitante", // ✅ novo campo adicionado
-          pessoas,
-          barmen,
-          bebidas,
-          insumos,
-          endereco,
-          preco: 500 + barmen * 600 + bebidas.length * 100 + insumos.length * 30,
-          status: "em análise",
-          statusPagamento: "pendente", // ✅ novo campo adicionado
-          criadoEm: new Date(),
-          pacotePronto: false
-          });
-
-
+      await addDoc(collection(db, "pacotes"), {
+        uid: usuario?.uid || null,
+        email: usuario?.email || "visitante",
+        pessoas: parseInt(pessoas),
+        barmen,
+        bebidas,
+        insumos,
+        endereco,
+        preco: 500 + barmen * 600 + bebidas.length * 100 + insumos.length * 30,
+        status: "em análise",
+        statusPagamento: "pendente",
+        criadoEm: new Date(),
+        pacotePronto: false,
+      });
       setPedidoEnviado(true);
-    } catch (error) {
-      console.error("Erro ao salvar pacote:", error);
-      alert("Erro ao finalizar pacote");
+    } catch (err) {
+      alert("Erro ao finalizar pedido.");
     }
   };
-
   const etapas = [
     {
       id: 1,
@@ -116,13 +137,21 @@ function EditablePackageWizard() {
           <label className="block text-sm font-medium text-gray-700">Quantidade de pessoas</label>
           <input
             type="number"
+            min="1"
             placeholder="Ex: 50"
             className="w-full p-3 border border-gray-300 rounded"
             value={pessoas}
             onChange={(e) => {
-              const valor = Number(e.target.value);
-              setPessoas(valor);
-              if (valor > 0) setBarmen(calcularBarmenRecomendado(valor));
+              const valor = e.target.value;
+              if (valor === "" || parseInt(valor) > 0) {
+                setPessoas(valor);
+                if (parseInt(valor) > 0) {
+                  setBarmen(calcularBarmenRecomendado(parseInt(valor)));
+                }
+              }
+            }}
+            onBlur={() => {
+              if (pessoas !== "") setPessoas(String(parseInt(pessoas)));
             }}
           />
         </div>
@@ -177,49 +206,12 @@ function EditablePackageWizard() {
           >
             📍 Usar minha localização atual
           </button>
-          <input
-            type="text"
-            placeholder="CEP"
-            className="w-full p-3 bg-white border border-gray-300 rounded"
-            value={cep}
-            onChange={(e) => setCep(e.target.value)}
-            onBlur={buscarEndereco}
-          />
-          <input
-            type="text"
-            placeholder="Cidade"
-            className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
-            value={cidade}
-            readOnly
-          />
-          <input
-            type="text"
-            placeholder="Estado"
-            className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
-            value={estado}
-            readOnly
-          />
-          <input
-            type="text"
-            placeholder="Bairro"
-            className="w-full p-3 bg-white border border-gray-300 rounded"
-            value={bairro}
-            onChange={(e) => setBairro(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Número"
-            className="w-full p-3 bg-white border border-gray-300 rounded"
-            value={numero}
-            onChange={(e) => setNumero(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Complemento"
-            className="w-full p-3 bg-white border border-gray-300 rounded"
-            value={complemento}
-            onChange={(e) => setComplemento(e.target.value)}
-          />
+          <input type="text" placeholder="CEP" className="w-full p-3 border border-gray-300 rounded" value={cep} onChange={(e) => setCep(e.target.value)} onBlur={buscarEndereco} />
+          <input type="text" placeholder="Cidade" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={cidade} readOnly />
+          <input type="text" placeholder="Estado" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={estado} readOnly />
+          <input type="text" placeholder="Bairro" className="w-full p-3 border border-gray-300 rounded" value={bairro} onChange={(e) => setBairro(e.target.value)} />
+          <input type="text" placeholder="Número" className="w-full p-3 border border-gray-300 rounded" value={numero} onChange={(e) => setNumero(e.target.value)} />
+          <input type="text" placeholder="Complemento" className="w-full p-3 border border-gray-300 rounded" value={complemento} onChange={(e) => setComplemento(e.target.value)} />
         </div>
       )
     },
@@ -230,8 +222,8 @@ function EditablePackageWizard() {
         <div className="bg-gray-100 p-4 rounded space-y-2">
           <p><strong>Pessoas:</strong> {pessoas}</p>
           <p><strong>Barmen:</strong> {barmen}</p>
-          <p><strong>Bebidas:</strong> {bebidas.join(", ") || "Nenhuma"}</p>
-          <p><strong>Insumos:</strong> {insumos.join(", ") || "Nenhum"}</p>
+          <p><strong>Bebidas:</strong> {bebidas.join(", ")}</p>
+          <p><strong>Insumos:</strong> {insumos.join(", ")}</p>
           <p><strong>Endereço:</strong> {bairro}, {numero} - {cidade}/{estado}</p>
         </div>
       )
@@ -243,7 +235,10 @@ function EditablePackageWizard() {
   return (
     <div className="max-w-xl mx-auto p-6 bg-white text-black space-y-6">
       <div className="w-full bg-gray-200 h-2 rounded">
-        <div className="bg-[#F4A300] h-2 rounded transition-all duration-300" style={{ width: `${(step / etapas.length) * 100}%` }}></div>
+        <div
+          className="bg-[#F4A300] h-2 rounded transition-all duration-300"
+          style={{ width: `${(step / etapas.length) * 100}%` }}
+        ></div>
       </div>
 
       <h2 className="text-2xl font-bold text-[#F4A300] text-center">{etapaAtual.titulo}</h2>
@@ -269,18 +264,27 @@ function EditablePackageWizard() {
             Voltar
           </button>
         )}
-
         {step < etapas.length ? (
           <button
             onClick={() => setStep((s) => s + 1)}
-            className="bg-[#F4A300] text-black px-4 py-2 rounded hover:bg-yellow-500"
+            disabled={!etapaValida()}
+            className={`px-4 py-2 rounded font-semibold transition ${
+              etapaValida()
+                ? "bg-[#F4A300] text-black hover:bg-yellow-500"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           >
             Próximo
           </button>
         ) : (
           <button
             onClick={finalizar}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            disabled={!pedidoValido()}
+            className={`px-4 py-2 rounded font-semibold transition ${
+              pedidoValido()
+                ? "bg-green-600 text-white hover:bg-green-700"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           >
             Finalizar Pedido
           </button>
