@@ -128,6 +128,7 @@ function EditablePackageWizard() {
       alert("Erro ao finalizar pedido.");
     }
   };
+
   const etapas = [
     {
       id: 1,
@@ -136,6 +137,7 @@ function EditablePackageWizard() {
         <div className="space-y-4">
           <label className="block text-sm font-medium text-gray-700">Quantidade de pessoas</label>
           <input
+            data-testid="input-pessoas"
             type="number"
             min="1"
             placeholder="Ex: 50"
@@ -165,6 +167,7 @@ function EditablePackageWizard() {
           {tiposBebida.map((bebida) => (
             <button
               key={bebida}
+              data-testid={`btn-bebida-${bebida.toLowerCase().replace(/\s/g, '-')}`}
               onClick={() => toggleItem(bebida, bebidas, setBebidas)}
               className={`w-32 h-24 rounded-lg shadow flex items-center justify-center text-sm font-semibold transition ${
                 bebidas.includes(bebida) ? "bg-[#F4A300] text-black" : "bg-gray-100 text-black"
@@ -184,6 +187,7 @@ function EditablePackageWizard() {
           {tiposInsumos.map((insumo) => (
             <button
               key={insumo}
+              data-testid={`btn-insumo-${insumo.toLowerCase().replace(/\s/g, '-')}`}
               onClick={() => toggleItem(insumo, insumos, setInsumos)}
               className={`w-32 h-24 rounded-lg shadow flex items-center justify-center text-sm font-semibold transition ${
                 insumos.includes(insumo) ? "bg-[#F4A300] text-black" : "bg-gray-100 text-black"
@@ -201,17 +205,18 @@ function EditablePackageWizard() {
       conteudo: (
         <div className="space-y-4">
           <button
+            data-testid="btn-usar-localizacao"
             onClick={usarLocalizacaoAtual}
             className="w-full bg-gray-200 text-sm text-black py-2 rounded hover:bg-gray-300 transition"
           >
             📍 Usar minha localização atual
           </button>
-          <input type="text" placeholder="CEP" className="w-full p-3 border border-gray-300 rounded" value={cep} onChange={(e) => setCep(e.target.value)} onBlur={buscarEndereco} />
-          <input type="text" placeholder="Cidade" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={cidade} readOnly />
-          <input type="text" placeholder="Estado" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={estado} readOnly />
-          <input type="text" placeholder="Bairro" className="w-full p-3 border border-gray-300 rounded" value={bairro} onChange={(e) => setBairro(e.target.value)} />
-          <input type="text" placeholder="Número" className="w-full p-3 border border-gray-300 rounded" value={numero} onChange={(e) => setNumero(e.target.value)} />
-          <input type="text" placeholder="Complemento" className="w-full p-3 border border-gray-300 rounded" value={complemento} onChange={(e) => setComplemento(e.target.value)} />
+          <input data-testid="input-cep" type="text" placeholder="CEP" className="w-full p-3 border border-gray-300 rounded" value={cep} onChange={(e) => setCep(e.target.value)} onBlur={buscarEndereco} />
+          <input data-testid="input-cidade" type="text" placeholder="Cidade" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={cidade} readOnly />
+          <input data-testid="input-estado" type="text" placeholder="Estado" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={estado} readOnly />
+          <input data-testid="input-bairro" type="text" placeholder="Bairro" className="w-full p-3 border border-gray-300 rounded" value={bairro} onChange={(e) => setBairro(e.target.value)} />
+          <input data-testid="input-numero" type="text" placeholder="Número" className="w-full p-3 border border-gray-300 rounded" value={numero} onChange={(e) => setNumero(e.target.value)} />
+          <input data-testid="input-complemento" type="text" placeholder="Complemento" className="w-full p-3 border border-gray-300 rounded" value={complemento} onChange={(e) => setComplemento(e.target.value)} />
         </div>
       )
     },
@@ -219,7 +224,7 @@ function EditablePackageWizard() {
       id: 5,
       titulo: "Resumo do Pedido",
       conteudo: (
-        <div className="bg-gray-100 p-4 rounded space-y-2">
+        <div data-testid="resumo-pedido" className="bg-gray-100 p-4 rounded space-y-2">
           <p><strong>Pessoas:</strong> {pessoas}</p>
           <p><strong>Barmen:</strong> {barmen}</p>
           <p><strong>Bebidas:</strong> {bebidas.join(", ")}</p>
@@ -233,7 +238,7 @@ function EditablePackageWizard() {
   const etapaAtual = etapas.find((e) => e.id === step);
 
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white text-black space-y-6">
+    <div data-testid="custom-package-wizard" className="max-w-xl mx-auto p-6 bg-white text-black space-y-6">
       <div className="w-full bg-gray-200 h-2 rounded">
         <div
           className="bg-[#F4A300] h-2 rounded transition-all duration-300"
@@ -258,6 +263,7 @@ function EditablePackageWizard() {
       <div className="flex justify-between mt-6">
         {step > 1 && (
           <button
+            data-testid="btn-voltar"
             onClick={() => setStep((s) => s - 1)}
             className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
           >
@@ -266,6 +272,7 @@ function EditablePackageWizard() {
         )}
         {step < etapas.length ? (
           <button
+            data-testid="btn-proximo"
             onClick={() => setStep((s) => s + 1)}
             disabled={!etapaValida()}
             className={`px-4 py-2 rounded font-semibold transition ${
@@ -278,6 +285,7 @@ function EditablePackageWizard() {
           </button>
         ) : (
           <button
+            data-testid="btn-finalizar"
             onClick={finalizar}
             disabled={!pedidoValido()}
             className={`px-4 py-2 rounded font-semibold transition ${
@@ -292,7 +300,7 @@ function EditablePackageWizard() {
       </div>
 
       {pedidoEnviado && (
-        <div className="bg-green-100 border border-green-400 text-green-800 p-4 rounded text-center font-medium mt-4">
+        <div data-testid="mensagem-sucesso" className="bg-green-100 border border-green-400 text-green-800 p-4 rounded text-center font-medium mt-4">
           Pedido enviado com sucesso! Aguardando confirmação.
         </div>
       )}

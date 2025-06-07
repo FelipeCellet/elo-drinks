@@ -5,7 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import * as firestore from 'firebase/firestore';
 
-// Mock do Firebase e Auth
+// Mocks
 jest.mock('../firebase', () => ({
   db: {},
   auth: {},
@@ -20,13 +20,12 @@ jest.mock('firebase/firestore', () => ({
   addDoc: jest.fn(),
 }));
 
-// Mock de useParams
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({ id: '1' }),
 }));
 
-// Suprimir erros no console
+// Mock da geolocalização + API externa
 beforeAll(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   global.navigator.geolocation = {
@@ -36,11 +35,28 @@ beforeAll(() => {
       })
     ),
   };
+
+  global.fetch = jest.fn((url) => {
+    if (url.includes('nominatim')) {
+      return Promise.resolve({
+        json: () => Promise.resolve({
+          address: {
+            city: 'Santa Rita',
+            state: 'Minas Gerais',
+            suburb: 'Centro',
+            postcode: '37540000',
+          },
+        }),
+      });
+    }
+    return Promise.resolve({ json: () => Promise.resolve({}) });
+  });
 });
 
 describe('Teste de integração - ContratarPacotePronto', () => {
   beforeEach(() => {
     useAuthState.mockReturnValue([{ uid: '123', email: 'teste@email.com' }]);
+    firestore.addDoc.mockClear();
   });
 
   it('envia um pedido corretamente ao preencher e confirmar', async () => {
@@ -50,30 +66,41 @@ describe('Teste de integração - ContratarPacotePronto', () => {
       </BrowserRouter>
     );
 
-    // Preenche os campos
-    fireEvent.change(screen.getByPlaceholderText(/Ex: 50 pessoas/i), {
+    // Preencher número de pessoas
+    fireEvent.change(screen.getByTestId('input-pessoas'), {
       target: { value: '60' },
     });
 
-    fireEvent.change(screen.getByPlaceholderText(/Bairro/i), {
-      target: { value: 'Centro' },
+    // Simular seleção de data (usando Date real)
+    const novaData = new Date(2025, 11, 12); // 12/12/2025
+    fireEvent.click(screen.getByTestId('input-data')); // abre o calendário
+    fireEvent.change(screen.getByTestId('input-data'), {
+      target: { value: '12/12/2025' },
     });
 
-    fireEvent.change(screen.getByPlaceholderText(/Número/i), {
+    // Clicar em usar localização
+    fireEvent.click(screen.getByTestId('btn-localizacao'));
+
+    // Esperar a cidade/estado serem preenchidos
+    await waitFor(() => {
+      expect(screen.getByTestId('input-cidade').value).toBe('Santa Rita');
+      expect(screen.getByTestId('input-estado').value).toBe('Minas Gerais');
+    });
+
+    // Preencher bairro e número
+    fireEvent.change(screen.getByTestId('input-bairro'), {
+      target: { value: 'Centro' },
+    });
+    fireEvent.change(screen.getByTestId('input-numero'), {
       target: { value: '123' },
     });
 
-    // O DatePicker pode precisar ser simulado com fireEvent.change ou com lib auxiliar
-    fireEvent.change(screen.getByPlaceholderText(/Data do evento/i), {
-      target: { value: '2025-12-31' },
-    });
+    // Confirmar
+    const botao = screen.getByTestId('btn-contratar');
+    fireEvent.click(botao);
 
-    // Confirma contratação
-    fireEvent.click(screen.getByRole('button', { name: /confirmar contratação/i }));
-
-    // Espera o envio do pedido
     await waitFor(() => {
-      expect(firestore.addDoc).toHaveBeenCalled();
+      expect(firestore.addDoc).toHaveBeenCalledTimes(1);
     });
   });
 });

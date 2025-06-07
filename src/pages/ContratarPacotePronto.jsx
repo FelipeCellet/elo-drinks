@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState } from "react";
+import React, { useState, forwardRef } from "react";
 import { useParams } from "react-router-dom";
 import { collection, addDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -22,13 +21,25 @@ const pacotes = [
   },
 ];
 
+const InputComTestId = forwardRef(({ value, onClick, onChange }, ref) => (
+  <input
+    data-testid="input-data"
+    onClick={onClick}
+    onChange={onChange}
+    ref={ref}
+    value={value}
+    placeholder="Selecione a data"
+    className="w-full p-3 bg-white border border-gray-300 rounded shadow-sm"
+  />
+));
+
 function ContratarPacotePronto() {
   const { id } = useParams();
   const [usuario] = useAuthState(auth);
   const pacoteSelecionado = pacotes.find((p) => p.id === id);
 
   const [dataEvento, setDataEvento] = useState(null);
-  const [pessoas, setPessoas] = useState("");
+  const [pessoas, setPessoas] = useState(1);
   const [cep, setCep] = useState("");
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
@@ -85,15 +96,7 @@ function ContratarPacotePronto() {
   };
 
   const contratar = async () => {
-    if (
-      !pessoas ||
-      !dataEvento ||
-      !cep ||
-      !cidade ||
-      !estado ||
-      !bairro ||
-      !numero
-    ) {
+    if (!pessoas || !dataEvento || !cep || !cidade || !estado || !bairro || !numero) {
       alert("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
@@ -139,7 +142,10 @@ function ContratarPacotePronto() {
       )}
 
       {mensagem ? (
-        <div className="bg-green-100 border border-green-400 text-green-800 p-4 rounded text-center font-medium">
+        <div
+          data-testid="mensagem-sucesso"
+          className="bg-green-100 border border-green-400 text-green-800 p-4 rounded text-center font-medium"
+        >
           {mensagem}
         </div>
       ) : (
@@ -148,6 +154,7 @@ function ContratarPacotePronto() {
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Número de pessoas</label>
             <input
+              data-testid="input-pessoas"
               type="number"
               min="1"
               placeholder="Ex: 50"
@@ -163,12 +170,12 @@ function ContratarPacotePronto() {
               selected={dataEvento}
               onChange={(date) => setDataEvento(date)}
               dateFormat="dd/MM/yyyy"
-              placeholderText="Selecione a data"
-              className="w-full p-3 bg-white border border-gray-300 rounded shadow-sm"
+              customInput={<InputComTestId />}
             />
           </div>
 
           <button
+            data-testid="btn-localizacao"
             onClick={usarLocalizacaoAtual}
             className="w-full bg-gray-200 text-sm text-black py-2 rounded hover:bg-gray-300 transition"
           >
@@ -177,35 +184,74 @@ function ContratarPacotePronto() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">CEP</label>
-            <input type="text" placeholder="CEP" className="w-full p-3 bg-white border border-gray-300 rounded" value={cep} onChange={(e) => setCep(e.target.value)} onBlur={buscarEndereco} />
+            <input
+              data-testid="input-cep"
+              type="text"
+              placeholder="CEP"
+              className="w-full p-3 bg-white border border-gray-300 rounded"
+              value={cep}
+              onChange={(e) => setCep(e.target.value)}
+              onBlur={buscarEndereco}
+            />
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Cidade</label>
-            <input type="text" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={cidade} readOnly />
+            <input
+              data-testid="input-cidade"
+              type="text"
+              className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
+              value={cidade}
+              readOnly
+            />
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
-            <input type="text" className="w-full p-3 bg-gray-100 border border-gray-300 rounded" value={estado} readOnly />
+            <input
+              data-testid="input-estado"
+              type="text"
+              className="w-full p-3 bg-gray-100 border border-gray-300 rounded"
+              value={estado}
+              readOnly
+            />
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Bairro</label>
-            <input type="text" className="w-full p-3 bg-white border border-gray-300 rounded" value={bairro} onChange={(e) => setBairro(e.target.value)} />
+            <input
+              data-testid="input-bairro"
+              type="text"
+              className="w-full p-3 bg-white border border-gray-300 rounded"
+              value={bairro}
+              onChange={(e) => setBairro(e.target.value)}
+            />
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Número</label>
-            <input type="text" className="w-full p-3 bg-white border border-gray-300 rounded" value={numero} onChange={(e) => setNumero(e.target.value)} />
+            <input
+              data-testid="input-numero"
+              type="text"
+              className="w-full p-3 bg-white border border-gray-300 rounded"
+              value={numero}
+              onChange={(e) => setNumero(e.target.value)}
+            />
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Complemento</label>
-            <input type="text" className="w-full p-3 bg-white border border-gray-300 rounded" value={complemento} onChange={(e) => setComplemento(e.target.value)} />
+            <input
+              data-testid="input-complemento"
+              type="text"
+              className="w-full p-3 bg-white border border-gray-300 rounded"
+              value={complemento}
+              onChange={(e) => setComplemento(e.target.value)}
+            />
           </div>
 
           <button
+            data-testid="btn-contratar"
             onClick={contratar}
             disabled={
               !pessoas || !dataEvento || !cep || !cidade || !estado || !bairro || !numero
