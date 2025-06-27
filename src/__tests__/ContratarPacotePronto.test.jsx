@@ -5,7 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import * as firestore from 'firebase/firestore';
 
-// Mocks
+
 jest.mock('../firebase', () => ({
   db: {},
   auth: {},
@@ -25,7 +25,7 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ id: '1' }),
 }));
 
-// Mock da geolocalização + API externa
+
 beforeAll(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   global.navigator.geolocation = {
@@ -71,7 +71,7 @@ describe('Teste de integração - ContratarPacotePronto', () => {
       target: { value: '60' },
     });
 
-    // Simular seleção de data (usando Date real)
+    // Simular seleção de data 
     const novaData = new Date(2025, 11, 12); // 12/12/2025
     fireEvent.click(screen.getByTestId('input-data')); // abre o calendário
     fireEvent.change(screen.getByTestId('input-data'), {

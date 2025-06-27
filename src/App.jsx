@@ -21,6 +21,10 @@ import AdminAprovacoes from "./pages/AdminAprovacoes";
 import AdminLayout from "./pages/AdminLayout"; 
 import AdminPagamentos from "./pages/AdminPagamentos";
 import AdminPedidos from "./pages/AdminPedidos";
+import AdminAdicionarPacote from "./pages/AdminAdicionarPacote"; 
+import AdminAdicionarOpcional from "./pages/AdminAdicionarOpcional";
+import PortfolioPage from "./pages/PortfolioPage";
+
 
 
 function AppWrapper() {
@@ -67,7 +71,8 @@ function AppWrapper() {
     <div className="min-h-screen bg-white text-black">
       {!esconderNavbar && <Navbar usuario={usuario} />}
 
-      <main className="flex-1 p-4 max-w-6xl mx-auto w-full">
+        <main className={`flex-1 ${location.pathname === "/portfolio" ? "p-0 max-w-full" : "p-4 max-w-6xl mx-auto"} w-full`}>
+
         <Routes>
           <Route path="/" element={usuario ? <Home /> : <Navigate to="/login" replace />} />
           <Route path="/packages" element={usuario ? <Packages /> : <Navigate to="/login" replace />} />
@@ -80,13 +85,18 @@ function AppWrapper() {
           <Route path="/login" element={usuario ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/register" element={usuario ? <Navigate to="/" replace /> : <Register />} />
           <Route path="/meus-pacotes" element={usuario ? <MyPackages /> : <Navigate to="/login" replace />} />
+          <Route path="/portfolio" element={<PortfolioPage />} />
+          
 
           {/* 🔒 Rotas protegidas para administradores */}
           <Route path="/admin" element={usuario?.isAdmin ? <AdminLayout /> : <Navigate to="/login" replace />}>
             <Route path="dashboard" element={<DashboardAdmin />} />
             <Route path="aprovacoes" element={<AdminAprovacoes />} />
             <Route path="pagamentos" element={<AdminPagamentos />} />
-              <Route path="pedidos" element={<AdminPedidos />} />
+            <Route path="pedidos" element={<AdminPedidos />} />
+            <Route path="/admin/adicionar-pacote" element={<AdminAdicionarPacote />} />
+            <Route path="/admin/opcionais" element={<AdminAdicionarOpcional />} />
+
           </Route>
         </Routes>
       </main>

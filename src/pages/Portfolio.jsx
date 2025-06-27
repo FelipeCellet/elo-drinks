@@ -26,7 +26,7 @@ function Portfolio() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrent((prev) => (prev + 1) % portfolioData.length);
-    }, 6000);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -41,49 +41,60 @@ function Portfolio() {
   };
 
   return (
-    <div className="text-white py-10 max-w-5xl mx-auto px-4">
-      <h2 className="text-4xl font-bold text-[#F4A300] text-center mb-10">
-        Portfólio de Eventos
-      </h2>
+    <section className="relative w-screen h-[calc(100vh-64px)] pt-16 overflow-hidden text-white">
+      {/* Imagem de fundo */}
+      <div className="absolute inset-0 w-full h-full z-0">
+      <img
+        src={evento.image}
+        alt={evento.title}
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: "center 20%" }}
+      />
 
-      <div className="bg-black border border-gray-800 rounded-2xl shadow-xl overflow-hidden relative">
-        <img
-          src={evento.image}
-          alt={evento.title}
-          className="w-full h-[650px] object-cover"
-        />
-        <button
-          onClick={prevSlide}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-gray-900/60 p-2 rounded-full hover:bg-gray-800"
-        >
-          <ChevronLeft className="w-6 h-6 text-white" />
-        </button>
-        <button
-          onClick={nextSlide}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-gray-900/60 p-2 rounded-full hover:bg-gray-800"
-        >
-          <ChevronRight className="w-6 h-6 text-white" />
-        </button>
-        <div className="p-8 text-center">
-          <h3 className="text-2xl font-bold text-[#F4A300] mb-2">{evento.title}</h3>
-          <h4 className="text-lg font-semibold mb-4">{evento.subtitle}</h4>
-          <p className="text-gray-300 whitespace-pre-line leading-relaxed">
+        <div className="absolute inset-0 bg-black/40 z-10" />
+      </div>
+
+      {/* Conteúdo centralizado verticalmente */}
+      <div className="relative z-20 w-full h-full flex items-center px-6 md:px-16">
+        <div className="max-w-2xl text-left">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#F4A300] mb-2">
+            {evento.title}
+          </h2>
+          <h3 className="text-lg md:text-xl font-semibold mb-4">
+            {evento.subtitle}
+          </h3>
+          <p className="text-sm md:text-base text-gray-200 leading-relaxed whitespace-pre-line">
             {evento.description}
           </p>
-          <div className="flex gap-2 mt-6 justify-center">
+
+          <div className="flex gap-2 mt-4">
             {portfolioData.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrent(index)}
-                className={`w-4 h-4 rounded-full transition-all duration-300 ${
-                  current === index ? "bg-[#F4A300] scale-110" : "bg-gray-700"
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  current === index ? "bg-[#F4A300]" : "bg-gray-500"
                 }`}
               ></button>
             ))}
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Botões de navegação */}
+      <button
+        onClick={prevSlide}
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-black/60 hover:bg-black/80 p-2 rounded-full"
+      >
+        <ChevronLeft className="text-white w-6 h-6" />
+      </button>
+      <button
+        onClick={nextSlide}
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-black/60 hover:bg-black/80 p-2 rounded-full"
+      >
+        <ChevronRight className="text-white w-6 h-6" />
+      </button>
+    </section>
   );
 }
 

@@ -1,25 +1,30 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase";
+import { collection, getDocs } from "firebase/firestore";
+import { auth, db } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-
-const samplePackages = [
-  {
-    id: 1,
-    nome: "Pacote Festa Clássica",
-    bebidas: ["Caipirinha", "Gin Tônica", "Cuba Libre"],
-    preco: 1200,
-  },
-  {
-    id: 2,
-    nome: "Pacote Premium",
-    bebidas: ["Espumante", "Drinks Autorais", "Whisky"],
-    preco: 2200,
-  },
-];
 
 function Packages() {
   const navigate = useNavigate();
   const [usuario] = useAuthState(auth);
+  const [pacotes, setPacotes] = useState([]);
+
+  useEffect(() => {
+    const buscarPacotes = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "pacotes_prontos"));
+        const lista = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setPacotes(lista);
+      } catch (error) {
+        console.error("Erro ao buscar pacotes:", error);
+      }
+    };
+
+    buscarPacotes();
+  }, []);
 
   const contratarPacote = (pkg) => {
     if (!usuario) return;
@@ -33,7 +38,7 @@ function Packages() {
       </h2>
 
       <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-        {samplePackages.map((pkg) => (
+        {pacotes.map((pkg) => (
           <div
             key={pkg.id}
             className="bg-white border border-[#F4A300] p-6 rounded-2xl shadow-lg space-y-4 transition hover:scale-[1.01]"
@@ -42,7 +47,7 @@ function Packages() {
             <p className="text-sm text-gray-700">
               Bebidas incluídas: {pkg.bebidas.join(", ")}
             </p>
-            <p className="text-xl font-bold text-[#F4A300]">R$ {pkg.preco}</p>
+            <p className="text-xl font-bold text-[#F4A300]">R$ {pkg.precoBase}</p>
 
             <button
               onClick={() => contratarPacote(pkg)}

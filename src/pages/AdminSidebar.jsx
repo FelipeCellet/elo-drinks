@@ -42,6 +42,18 @@ function AdminSidebar() {
         >
           📦 Pedidos
         </NavLink>
+        <NavLink
+          to="/admin/adicionar-pacote"
+          className={({ isActive }) => `${linkBase} ${isActive ? activeClass : "text-gray-700"}`}
+        >
+          ➕ Adicionar Pacote
+        </NavLink>
+        <NavLink
+          to="/admin/opcionais"
+          className={({ isActive }) => `${linkBase} ${isActive ? activeClass : "text-gray-700"}`}
+        >
+  🧩 Opcionais
+</NavLink>
       </nav>
 
       <div className="border-t pt-4">
