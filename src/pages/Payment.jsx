@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "../firebase";
 import { QRCodeCanvas } from "qrcode.react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function Payment() {
   const { id } = useParams();
@@ -10,6 +13,13 @@ function Payment() {
   const [pacote, setPacote] = useState(null);
   const [metodo, setMetodo] = useState("");
   const [cartao, setCartao] = useState({ nome: "", numero: "", validade: "", cvv: "" });
+  const [usuario, loading] = useAuthState(auth);
+
+  useEffect(() => {
+    if (!loading && !usuario) {
+      navigate("/login");
+    }
+  }, [usuario, loading, navigate]);
 
   useEffect(() => {
     const buscarPacote = async () => {
@@ -32,8 +42,77 @@ function Payment() {
     }
   };
 
-  if (!pacote) {
-    return <p className="text-center text-gray-500 mt-10">Carregando pacote...</p>;
+const gerarPDF = () => {
+  const doc = new jsPDF();
+
+  // Faixa laranja no topo
+  doc.setFillColor(245, 164, 0); // #F4A300
+  doc.rect(0, 0, 210, 25, "F");
+
+  // Título em branco centralizado
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text("RESUMO DO PEDIDO - ELO DRINKS", 105, 16, { align: "center" });
+
+  // Dados do pacote
+  let y = 35;
+  doc.setFontSize(12);
+  doc.setTextColor(0, 0, 0);
+
+  const linha = (label, valor) => {
+    doc.text(`${label}:`, 10, y);
+    doc.text(String(valor), 60, y);
+    y += 7;
+  };
+
+  linha("Cliente", usuario?.email || "Não logado");
+  linha("Status", pacote.status);
+  linha("Qtd. Pessoas", pacote.pessoas);
+  linha("Endereço", pacote.endereco || "-");
+
+  if (pacote.dataEvento?.toDate) {
+    linha("Data do Evento", pacote.dataEvento.toDate().toLocaleDateString());
+  }
+
+  // Bebidas
+  if (pacote.bebidas?.length) {
+    doc.setTextColor(244, 163, 0); // laranja
+    doc.text("Bebidas:", 10, y);
+    y += 6;
+    doc.setTextColor(0, 0, 0);
+    pacote.bebidas.forEach((b) => {
+      doc.text(`- ${b}`, 12, y);
+      y += 6;
+    });
+  }
+
+  // Insumos
+  if (pacote.insumos?.length) {
+    y += 4;
+    doc.setTextColor(244, 163, 0);
+    doc.text("Insumos:", 10, y);
+    y += 6;
+    doc.setTextColor(0, 0, 0);
+    pacote.insumos.forEach((i) => {
+      doc.text(`- ${i}`, 12, y);
+      y += 6;
+    });
+  }
+
+  // Valor total
+  y += 10;
+  doc.setFontSize(14);
+  doc.setTextColor(244, 163, 0);
+  doc.text(`Valor Total: R$ ${pacote.preco?.toFixed(2).replace(".", ",")}`, 10, y);
+
+  // Salvar
+  doc.save(`pedido_${pacote.nome || "personalizado"}.pdf`);
+};
+
+
+  if (loading || !usuario || !pacote) {
+    return <p className="text-center text-gray-500 mt-10">Carregando...</p>;
   }
 
   const enderecoFormatado = pacote.endereco || "-";
@@ -52,25 +131,44 @@ function Payment() {
           <p><strong>Insumos:</strong> {pacote.insumos?.join(", ") || "-"}</p>
           <p><strong>Local:</strong> {enderecoFormatado}</p>
           <p><strong className="text-lg">Preço Total:</strong> <span className="text-[#F4A300] font-bold">R$ {precoTotal}</span></p>
+          <p><strong>Status:</strong> {pacote.status}</p>
         </div>
 
-        <h3 className="mt-10 mb-2 text-xl font-semibold text-[#F4A300]">Escolha a forma de pagamento</h3>
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setMetodo("pix")}
-            className={`flex-1 py-2 rounded ${metodo === "pix" ? "bg-[#F4A300] text-black" : "bg-gray-200 text-black"}`}
-          >
-            Pix
-          </button>
-          <button
-            onClick={() => setMetodo("cartao")}
-            className={`flex-1 py-2 rounded ${metodo === "cartao" ? "bg-[#F4A300] text-black" : "bg-gray-200 text-black"}`}
-          >
-            Cartão de Crédito
-          </button>
-        </div>
+        <button
+          onClick={gerarPDF}
+          className="w-full mt-4 bg-gray-200 hover:bg-gray-300 text-black py-2 rounded transition text-sm font-medium"
+        >
+          Baixar PDF do Resumo
+        </button>
 
-        {metodo === "pix" && (
+        {/* Opções de pagamento somente se o pacote foi confirmado */}
+        {pacote.status === "confirmado" ? (
+          <>
+            <h3 className="mt-10 mb-2 text-xl font-semibold text-[#F4A300]">Escolha a forma de pagamento</h3>
+            <div className="flex gap-4 mb-6">
+              <button
+                onClick={() => setMetodo("pix")}
+                className={`flex-1 py-2 rounded ${metodo === "pix" ? "bg-[#F4A300] text-black" : "bg-gray-200 text-black"}`}
+              >
+                Pix
+              </button>
+              <button
+                onClick={() => setMetodo("cartao")}
+                className={`flex-1 py-2 rounded ${metodo === "cartao" ? "bg-[#F4A300] text-black" : "bg-gray-200 text-black"}`}
+              >
+                Cartão de Crédito
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="text-center text-gray-500 mt-6">
+            {pacote.status === "pago"
+              ? "Pagamento já realizado. Obrigado!"
+              : "Aguardando aprovação para liberar o pagamento."}
+          </p>
+        )}
+
+        {metodo === "pix" && pacote.status === "confirmado" && (
           <div className="bg-white border border-[#F4A300] p-4 rounded-lg flex flex-col items-center text-center">
             <p className="mb-4">Escaneie o QR Code para pagar via Pix:</p>
             <QRCodeCanvas
@@ -89,7 +187,7 @@ function Payment() {
           </div>
         )}
 
-        {metodo === "cartao" && (
+        {metodo === "cartao" && pacote.status === "confirmado" && (
           <div className="bg-white border border-[#F4A300] p-4 rounded-lg space-y-3">
             <input
               type="text"
@@ -130,7 +228,7 @@ function Payment() {
           </div>
         )}
 
-        {!metodo && (
+        {!metodo && pacote.status === "confirmado" && (
           <p className="text-center text-sm text-gray-500 mt-6">
             Escolha um método de pagamento para continuar.
           </p>

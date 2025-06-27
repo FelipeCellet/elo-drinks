@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/logo-elo.png'; 
+import logo from '../assets/logo-elo.png'; // ajuste o caminho se necessário
 
 function Register() {
   const [email, setEmail] = useState('');
@@ -20,12 +20,14 @@ function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-100 flex justify-center items-center px-4">
-      <div className="w-full max-w-md space-y-6 p-8 bg-white border border-gray-200 shadow-xl rounded-2xl text-black">
+    <div className="min-h-screen bg-white flex justify-center items-center px-4">
+      <div className="w-full max-w-md space-y-6 p-8 bg-white border border-gray-200 shadow-lg rounded-2xl text-black">
         <div className="flex flex-col items-center space-y-4">
           <img src={logo} alt="Logo" className="w-24 h-24 object-contain" />
           <h2 className="text-3xl font-extrabold text-[#F4A300] text-center">Criar Conta</h2>
-          <p className="text-sm text-gray-500">Cadastre-se para começar a usar a plataforma</p>
+          <p className="text-sm text-gray-500 text-center">
+            Cadastre-se para começar a usar a plataforma
+          </p>
         </div>
 
         <div className="space-y-4">
