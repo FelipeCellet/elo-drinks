@@ -4,7 +4,7 @@
 
 Sistema web desenvolvido para facilitar a contratação de pacotes de drinks e serviços personalizados para festas e eventos. Com uma interface moderna e intuitiva, o app permite ao usuário contratar pacotes prontos, montar pacotes personalizados, acompanhar status de pedidos e realizar a administração completa via painel exclusivo.
 
-![Elo Drinks Banner](./public/banner.jpg)
+![Elo Drinks Banner](./public/banner.png)
 
 ---
 
