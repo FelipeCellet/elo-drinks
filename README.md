@@ -37,7 +37,7 @@ Sistema web desenvolvido para facilitar a contratação de pacotes de drinks e s
 
 ## 📸 Imagens do Projeto
 
-| Home (Mobile) | Wizard Personalizado | Painel Admin |
+| Home (Mobile) | Pacotes Personalizado | Painel Admin |
 |---|---|---|
 | ![home](./public/home.png) | ![pacotes](./public/pacotes.png) | ![admin](./public/admin.png) |
 
