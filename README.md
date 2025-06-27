@@ -135,5 +135,3 @@ npx cypress open
 
 
 - INATEL – Instituto Nacional de Telecomunicações  
-- Professores e colegas que contribuíram no desenvolvimento do projeto  
-- Firebase, React e toda comunidade open-source
